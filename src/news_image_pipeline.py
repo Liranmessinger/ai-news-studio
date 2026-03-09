@@ -82,6 +82,21 @@ def parse_published(value: str | None) -> datetime | None:
         return None
 
 
+def extract_img_from_html(html_text: str | None) -> str | None:
+    if not html_text:
+        return None
+    try:
+        soup = BeautifulSoup(html_text, "html.parser")
+        tag = soup.find("img")
+        if not tag:
+            return None
+        src = str(tag.get("src", "")).strip()
+        if src.startswith("http://") or src.startswith("https://"):
+            return src
+    except Exception:
+        return None
+    return None
+
 
 def extract_entry_image_url(entry: Any) -> str | None:
     try:
@@ -107,9 +122,61 @@ def extract_entry_image_url(entry: Any) -> str | None:
                 typ = str(l.get("type", "")).lower()
                 if href and ("image" in typ or rel == "enclosure"):
                     return href
+
+        summary_img = extract_img_from_html(getattr(entry, "summary", None))
+        if summary_img:
+            return summary_img
+
+        summary_detail = getattr(entry, "summary_detail", None)
+        if isinstance(summary_detail, dict):
+            summary_img = extract_img_from_html(summary_detail.get("value"))
+            if summary_img:
+                return summary_img
+
+        content_blocks = getattr(entry, "content", None)
+        if content_blocks and isinstance(content_blocks, list):
+            for block in content_blocks:
+                if not isinstance(block, dict):
+                    continue
+                content_img = extract_img_from_html(block.get("value"))
+                if content_img:
+                    return content_img
     except Exception:
         return None
 
+    return None
+
+
+
+def extract_article_page_image(link: str, timeout: int = 8) -> str | None:
+    if not link:
+        return None
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; AI-News-Studio/1.0)"}
+    try:
+        with httpx.Client(timeout=timeout, follow_redirects=True, headers=headers) as client:
+            response = client.get(link)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, "html.parser")
+
+            for key, attr in [
+                ("og:image", "property"),
+                ("og:image:url", "property"),
+                ("twitter:image", "name"),
+                ("twitter:image:src", "name"),
+            ]:
+                meta = soup.find("meta", attrs={attr: key})
+                if meta and meta.get("content"):
+                    img = str(meta.get("content")).strip()
+                    if img.startswith("http://") or img.startswith("https://"):
+                        return img
+
+            first_img = soup.find("img")
+            if first_img:
+                src = str(first_img.get("src", "")).strip()
+                if src.startswith("http://") or src.startswith("https://"):
+                    return src
+    except Exception:
+        return None
     return None
 def scan_feed(source: dict[str, Any], max_items: int) -> list[Article]:
     parsed = feedparser.parse(source["url"])
@@ -139,8 +206,6 @@ def scan_feed(source: dict[str, Any], max_items: int) -> list[Article]:
             )
         )
     return results
-
-
 def _clean_duplicate_summary(summary: str, title: str) -> str:
     s = (summary or "").strip()
     t = (title or "").strip()
@@ -390,6 +455,10 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+
+
 
 
 

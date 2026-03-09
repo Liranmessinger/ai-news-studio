@@ -15,6 +15,7 @@ from flask import Flask, jsonify, render_template, request, send_from_directory
 from news_image_pipeline import (
     build_image_prompt,
     extractive_summary,
+    extract_article_page_image,
     generate_image,
     llm_summary,
     load_config,
@@ -95,18 +96,48 @@ def remove_summary_dup(summary: str, title: str, category: str) -> str:
         return fallback_subtitle(t, category)
     if "אין תקציר זמין" in s:
         return fallback_subtitle(t, category)
-    if t and s.lower() == t.lower():
+    if t and summary_too_similar(s, t):
         return fallback_subtitle(t, category)
     if t and s.lower().startswith(t.lower()):
         s = s[len(t):].strip(" -:|\t")
+    if t and summary_too_similar(s, t):
+        return fallback_subtitle(t, category)
     if len(s) < 12:
         return fallback_subtitle(t, category)
     return s
+
+
 def normalize_text(text: str) -> str:
     value = html.unescape((text or "").strip())
     value = re.sub(r"&#\d+;?", "", value)
     value = re.sub(r"\s+", " ", value).strip()
     return value
+
+
+def normalized_for_compare(text: str) -> str:
+    value = normalize_text(text).lower()
+    value = re.sub(r"[^0-9a-z\u0590-\u05ff ]+", " ", value)
+    value = re.sub(r"\s+", " ", value).strip()
+    return value
+
+
+def summary_too_similar(summary: str, title: str) -> bool:
+    s = normalized_for_compare(summary)
+    t = normalized_for_compare(title)
+    if not s or not t:
+        return False
+    if s == t or s in t or t in s:
+        return True
+
+    s_tokens = [x for x in s.split() if len(x) > 1]
+    t_tokens = [x for x in t.split() if len(x) > 1]
+    if not s_tokens or not t_tokens:
+        return False
+
+    s_set = set(s_tokens)
+    t_set = set(t_tokens)
+    overlap = len(s_set & t_set) / max(1, len(t_set))
+    return overlap >= 0.7
 
 
 def emoji_for_item(category: str, title: str, summary: str) -> str:
@@ -320,6 +351,7 @@ def get_news(
         item["title"] = normalize_text(item.get("title", ""))
         item["summary"] = normalize_text(item.get("summary", ""))
         item["summary"] = remove_summary_dup(item.get("summary", ""), item.get("title", ""), item.get("category", ""))
+        item["summary"] = re.sub(r"^דגל ישראל\s*", "", item.get("summary", "")).strip()
         item["title"] = hebrew_title_from_summary(item.get("title", ""), item.get("summary", ""))
         emoji = emoji_for_item(item.get("category", ""), item.get("title", ""), item.get("summary", ""))
         if item.get("summary") and not item["summary"].startswith(emoji):
@@ -400,6 +432,7 @@ def run_generation_cycle() -> dict[str, int]:
             link = article.link or ""
             title = article.title or "ללא כותרת"
             published_at = article.published_at.isoformat() if article.published_at else None
+            source_image_url = getattr(article, "source_image_url", None) or extract_article_page_image(link, min(timeout, 8))
 
             if news_exists(link, style_name, article.source_name, title, published_at):
                 update_missing_image(
@@ -408,7 +441,7 @@ def run_generation_cycle() -> dict[str, int]:
                     article.source_name,
                     title,
                     published_at,
-                    getattr(article, "source_image_url", None),
+                    source_image_url,
                 )
                 continue
 
@@ -424,8 +457,8 @@ def run_generation_cycle() -> dict[str, int]:
             rel_path = output_path.relative_to(BASE_DIR).as_posix()
             image_path = rel_path if suffix in {".png", ".jpg", ".jpeg", ".webp"} else None
             prompt_path = rel_path if suffix == ".txt" else None
-            if not image_path and getattr(article, "source_image_url", None):
-                image_path = article.source_image_url
+            if not image_path and source_image_url:
+                image_path = source_image_url
 
             inserted = insert_news_item(
                 {
@@ -526,6 +559,16 @@ app = create_app()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
+
+
+
+
+
+
+
+
+
+
 
 
 

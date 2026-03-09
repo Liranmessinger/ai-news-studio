@@ -62,10 +62,70 @@ body[data-theme="white"] {
   --topbar-b: #edf3fb;
   --panel: #ffffff;
   --line: #c9d8ea;
-  --text: #13253c;
-  --muted: #5b7291;
-  --accent: #2d7dd9;
-  --accent-2: #5ab2ff;
+  --text: #101418;
+  --muted: #475467;
+  --accent: #1e63d6;
+  --accent-2: #2f80ff;
+}
+
+body[data-theme="white"] .topbar,
+body[data-theme="white"] .content-shell,
+body[data-theme="white"] .headline-rail-panel,
+body[data-theme="white"] .card,
+body[data-theme="white"] .stat {
+  background: #ffffff;
+  border-color: #b7c9e5;
+}
+
+body[data-theme="white"] .card h2,
+body[data-theme="white"] .headline-item,
+body[data-theme="white"] .stat strong {
+  color: #0b0f14;
+}
+
+body[data-theme="white"] .card p,
+body[data-theme="white"] footer,
+body[data-theme="white"] .stat span {
+  color: #3d4d62;
+}
+
+body[data-theme="white"] .chip {
+  background: #f3f7ff;
+  border-color: #9fb9e2;
+  color: #142236;
+}
+
+body[data-theme="white"] .chip.active {
+  background: #1e63d6;
+  border-color: #1e63d6;
+  color: #ffffff;
+}
+
+body[data-theme="white"] .pill.category {
+  background: #edf4ff;
+  border-color: #8eb0e5;
+  color: #164082;
+}
+
+body[data-theme="white"] .pill.style {
+  background: #e7f8f0;
+  border-color: #8dd8b4;
+  color: #0f5f3d;
+}
+
+body[data-theme="white"] .pill.model {
+  background: #eef0ff;
+  border-color: #c4c9f8;
+  color: #3a4287;
+}
+
+body[data-theme="white"] .rail-head,
+body[data-theme="white"] .links a {
+  color: #1e63d6;
+}
+
+body[data-theme="white"] .headline-item:hover {
+  background: #edf4ff;
 }
 * { box-sizing: border-box; }
 
@@ -381,6 +441,7 @@ footer {
     flex-direction: column;
   }
 }
+
 
 
 

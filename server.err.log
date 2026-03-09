@@ -1,84 +1,42 @@
-2026-03-09 20:42:11,808 INFO Adding job tentatively -- it will be properly scheduled when the scheduler starts
-2026-03-09 20:42:11,810 INFO Added job "safe_cycle" to job store "default"
-2026-03-09 20:42:11,810 INFO Scheduler started
-2026-03-09 20:42:21,527 INFO Cycle complete. scanned=42 added=6
-2026-03-09 20:42:21,557 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
- * Running on all addresses (0.0.0.0)
- * Running on http://127.0.0.1:8000
- * Running on http://192.168.1.131:8000
-2026-03-09 20:42:21,557 INFO [33mPress CTRL+C to quit[0m
-2026-03-09 20:42:21,559 INFO  * Restarting with stat
-2026-03-09 20:42:22,232 INFO Adding job tentatively -- it will be properly scheduled when the scheduler starts
-2026-03-09 20:42:22,233 INFO Added job "safe_cycle" to job store "default"
-2026-03-09 20:42:22,234 INFO Scheduler started
-2026-03-09 20:42:26,558 INFO Cycle complete. scanned=42 added=0
-2026-03-09 20:42:26,586 WARNING  * Debugger is active!
-2026-03-09 20:42:26,591 INFO  * Debugger PIN: 506-488-244
-2026-03-09 20:42:26,641 INFO 127.0.0.1 - - [09/Mar/2026 20:42:26] "GET /api/news?limit=3 HTTP/1.1" 200 -
-2026-03-09 20:43:35,906 INFO  * Detected change in 'C:\\Users\\cetb\\Documents\\AI News\\src\\news_image_pipeline.py', reloading
-2026-03-09 20:43:35,986 INFO  * Restarting with stat
-2026-03-09 20:43:36,724 INFO Adding job tentatively -- it will be properly scheduled when the scheduler starts
-2026-03-09 20:43:36,729 INFO Added job "safe_cycle" to job store "default"
-2026-03-09 20:43:36,730 INFO Scheduler started
-2026-03-09 20:43:40,991 INFO Cycle complete. scanned=42 added=0
-2026-03-09 20:43:41,017 WARNING  * Debugger is active!
-2026-03-09 20:43:41,023 INFO  * Debugger PIN: 506-488-244
-2026-03-09 20:44:04,728 INFO  * Detected change in 'C:\\Users\\cetb\\Documents\\AI News\\src\\news_image_pipeline.py', reloading
-2026-03-09 20:44:04,789 INFO  * Restarting with stat
-2026-03-09 20:44:05,537 INFO Adding job tentatively -- it will be properly scheduled when the scheduler starts
-2026-03-09 20:44:05,542 INFO Added job "safe_cycle" to job store "default"
-2026-03-09 20:44:05,542 INFO Scheduler started
-2026-03-09 20:44:09,876 INFO Cycle complete. scanned=42 added=0
-2026-03-09 20:44:09,903 WARNING  * Debugger is active!
-2026-03-09 20:44:09,907 INFO  * Debugger PIN: 506-488-244
-2026-03-09 20:44:21,355 INFO  * Detected change in 'C:\\Users\\cetb\\Documents\\AI News\\src\\news_image_pipeline.py', reloading
-2026-03-09 20:44:21,415 INFO  * Restarting with stat
-2026-03-09 20:44:22,106 INFO Adding job tentatively -- it will be properly scheduled when the scheduler starts
-2026-03-09 20:44:22,114 INFO Added job "safe_cycle" to job store "default"
-2026-03-09 20:44:22,115 INFO Scheduler started
-2026-03-09 20:44:31,958 INFO Cycle complete. scanned=42 added=0
-2026-03-09 20:44:31,985 WARNING  * Debugger is active!
-2026-03-09 20:44:31,991 INFO  * Debugger PIN: 506-488-244
-2026-03-09 20:44:37,198 INFO  * Detected change in 'C:\\Users\\cetb\\Documents\\AI News\\src\\app.py', reloading
-2026-03-09 20:44:37,257 INFO  * Restarting with stat
-2026-03-09 20:44:37,928 INFO Adding job tentatively -- it will be properly scheduled when the scheduler starts
-2026-03-09 20:44:37,933 INFO Added job "safe_cycle" to job store "default"
-2026-03-09 20:44:37,933 INFO Scheduler started
-2026-03-09 20:44:42,089 INFO Cycle complete. scanned=42 added=0
-2026-03-09 20:44:42,116 WARNING  * Debugger is active!
-2026-03-09 20:44:42,121 INFO  * Debugger PIN: 506-488-244
-2026-03-09 20:46:48,894 INFO  * Detected change in 'C:\\Users\\cetb\\Documents\\AI News\\src\\news_image_pipeline.py', reloading
-2026-03-09 20:46:48,989 INFO  * Restarting with stat
-2026-03-09 20:46:49,825 INFO Adding job tentatively -- it will be properly scheduled when the scheduler starts
-2026-03-09 20:46:49,830 INFO Added job "safe_cycle" to job store "default"
-2026-03-09 20:46:49,830 INFO Scheduler started
-2026-03-09 20:47:00,280 INFO Cycle complete. scanned=42 added=0
-2026-03-09 20:47:00,306 WARNING  * Debugger is active!
-2026-03-09 20:47:00,310 INFO  * Debugger PIN: 506-488-244
-2026-03-09 20:47:16,981 INFO  * Detected change in 'C:\\Users\\cetb\\Documents\\AI News\\src\\app.py', reloading
-2026-03-09 20:47:17,066 INFO  * Restarting with stat
-2026-03-09 20:47:18,150 INFO Adding job tentatively -- it will be properly scheduled when the scheduler starts
-2026-03-09 20:47:18,156 INFO Added job "safe_cycle" to job store "default"
-2026-03-09 20:47:18,156 INFO Scheduler started
-2026-03-09 20:47:22,511 INFO Cycle complete. scanned=42 added=0
-2026-03-09 20:47:22,537 WARNING  * Debugger is active!
-2026-03-09 20:47:22,543 INFO  * Debugger PIN: 506-488-244
-2026-03-09 20:49:31,971 INFO  * Detected change in 'C:\\Users\\cetb\\Documents\\AI News\\src\\app.py', reloading
-2026-03-09 20:49:32,032 INFO  * Restarting with stat
-2026-03-09 20:49:32,723 INFO Adding job tentatively -- it will be properly scheduled when the scheduler starts
-2026-03-09 20:49:32,729 INFO Added job "safe_cycle" to job store "default"
-2026-03-09 20:49:32,729 INFO Scheduler started
-2026-03-09 20:49:42,425 INFO Cycle complete. scanned=42 added=2
-2026-03-09 20:49:42,460 WARNING  * Debugger is active!
-2026-03-09 20:49:42,467 INFO  * Debugger PIN: 506-488-244
-2026-03-09 20:49:47,687 INFO  * Detected change in 'C:\\Users\\cetb\\Documents\\AI News\\src\\app.py', reloading
-2026-03-09 20:49:47,776 INFO  * Restarting with stat
-2026-03-09 20:49:48,532 INFO Adding job tentatively -- it will be properly scheduled when the scheduler starts
-2026-03-09 20:49:48,538 INFO Added job "safe_cycle" to job store "default"
-2026-03-09 20:49:48,538 INFO Scheduler started
-2026-03-09 20:49:52,915 INFO Cycle complete. scanned=42 added=0
-2026-03-09 20:49:52,937 WARNING  * Debugger is active!
-2026-03-09 20:49:52,945 INFO  * Debugger PIN: 506-488-244
-2026-03-09 20:57:11,814 INFO Running job "safe_cycle (trigger: interval[0:15:00], next run at: 2026-03-09 18:57:11 UTC)" (scheduled at 2026-03-09 18:57:11.808322+00:00)
-2026-03-09 20:57:22,841 INFO Cycle complete. scanned=42 added=1
-2026-03-09 20:57:22,845 INFO Job "safe_cycle (trigger: interval[0:15:00], next run at: 2026-03-09 19:12:11 UTC)" executed successfully
+2026-03-09 21:48:04,879 INFO Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-03-09 21:48:04,885 INFO Added job "safe_cycle" to job store "default"
+2026-03-09 21:48:04,885 INFO Scheduler started
+2026-03-09 21:48:05,610 INFO HTTP Request: GET https://rotter.net/forum/scoops1/937408.shtml "HTTP/1.1 403 Forbidden"
+2026-03-09 21:48:06,044 INFO HTTP Request: GET https://rotter.net/forum/scoops1/937407.shtml "HTTP/1.1 403 Forbidden"
+2026-03-09 21:48:06,493 INFO HTTP Request: GET https://rotter.net/forum/scoops1/937406.shtml "HTTP/1.1 403 Forbidden"
+2026-03-09 21:48:08,186 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMiX0FVX3lxTE9sa29ndWI1Sm94YTFwY05MU2Zld1h1bDNraXM1UmZBN2FQbExoSmx6Y2tDQlBTTUFQcU9ORVZDSzJBV29lcHpTSm9sX19fbE5oSXZXNlphRmlqWjVjM2I4?oc=5 "HTTP/1.1 302 Found"
+2026-03-09 21:48:08,478 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMiX0FVX3lxTE9sa29ndWI1Sm94YTFwY05MU2Zld1h1bDNraXM1UmZBN2FQbExoSmx6Y2tDQlBTTUFQcU9ORVZDSzJBV29lcHpTSm9sX19fbE5oSXZXNlphRmlqWjVjM2I4?oc=5&hl=en-IL&gl=IL&ceid=IL:en "HTTP/1.1 200 OK"
+2026-03-09 21:48:09,352 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMiqwFBVV95cUxPWFExX2dzVHBrNEo5YkNrdjhvcDE2VTlXbDJkYWQ3d29LUmJTMWw0WlFLWTEyZU9ua3NMenBMV093VFRuOV9va3ZSLU1EUzczUFZ2LTQ2b29obWpFb3p0MlFhaG1qV1JudHZrRHpiSG1TRk15VDdRNW1mWEdIXzlUbU1qUUJOdW5YVHlFbXU4WDBEcHhsM3BnTUpCX1hOVzNINXNzQ2tBRGhQSG8?oc=5 "HTTP/1.1 302 Found"
+2026-03-09 21:48:09,659 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMiqwFBVV95cUxPWFExX2dzVHBrNEo5YkNrdjhvcDE2VTlXbDJkYWQ3d29LUmJTMWw0WlFLWTEyZU9ua3NMenBMV093VFRuOV9va3ZSLU1EUzczUFZ2LTQ2b29obWpFb3p0MlFhaG1qV1JudHZrRHpiSG1TRk15VDdRNW1mWEdIXzlUbU1qUUJOdW5YVHlFbXU4WDBEcHhsM3BnTUpCX1hOVzNINXNzQ2tBRGhQSG8?oc=5&hl=en-IL&gl=IL&ceid=IL:en "HTTP/1.1 200 OK"
+2026-03-09 21:48:10,654 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMiZEFVX3lxTE9XZHpnci1iaDhMQmxIazJKalVZcURXTWFjU1NObEt5aXpVZFNyTDRvdVJnaE4yWnExSkJqYThENmo4RW1jb3BIUHpRMmdxOVJvUTY3TnF6TWFqd3p6aDNXbTQ2dzI?oc=5 "HTTP/1.1 302 Found"
+2026-03-09 21:48:10,765 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMiZEFVX3lxTE9XZHpnci1iaDhMQmxIazJKalVZcURXTWFjU1NObEt5aXpVZFNyTDRvdVJnaE4yWnExSkJqYThENmo4RW1jb3BIUHpRMmdxOVJvUTY3TnF6TWFqd3p6aDNXbTQ2dzI?oc=5&hl=en-IL&gl=IL&ceid=IL:en "HTTP/1.1 200 OK"
+2026-03-09 21:48:12,647 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMiugRBVV95cUxPSlZYaGhzV3Q2UEZ0UTIxS1MzaTNTSXBDUzZYOG50c0JyX2FlWUZTUkV2LVNZdHBBc1EyNWptQjd4bFA1SzBZbXdwV25jMjkxVGx3SXNXYTJpUWxmYXpVemtYM1poeEpOLTcycVk4YWdmcFI0YlZXT0xpajE2RGJJaGN4RURSMVNSQnJFYnBsS2dWcFpzVHkxazlTWmxtLW9DcE9aNDduNUZfYnVBeU9HRlJxMUpkOVlZdFRZR210MDJuRG9QM1hpeWFQQ214c25GTlFhUFVNcWJ2M1gxNGVxd3lLakRodzJzVHNlTTNOZTlock1DdlNib1Z3bngycVl1V2dTNjRuSHk4UkRIenVfNnh4OGtIUjZwa212UDlXNDN6bnl4RXRvSjVINm1VT055VFduOERkUTFXeVJXYzhzd1M0SUpySUVWOXNGQW1JSUlQU3FNc3VkTlhBYUMya04tR2lBYWNnMDNlVFpNSGVEWGY0THV1OEswY28tcEViQzZUYVp0XzJZU2trVl92SUdTcFplVnBzNmJEX2tnQ1ljQi1UNU5pLWJJSjUyQlBjejFta3BDUFg4UV92b190b3V0V3BDNlE1cGtlMXozVHpLZ0FVbW50MU9HMzdMU1hlUFhlNzZvV1EtaXJqM1FSclZrTjQ0RHk3UG9xNTBXRnZHVjZzaTJTNnZ6QlZPV05VQWljYTlKa3luTloxalduaTJHTFd2NUl2aElRY0g2NlZoUzNJYWwtemRGa0E?oc=5 "HTTP/1.1 302 Found"
+2026-03-09 21:48:12,792 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMiugRBVV95cUxPSlZYaGhzV3Q2UEZ0UTIxS1MzaTNTSXBDUzZYOG50c0JyX2FlWUZTUkV2LVNZdHBBc1EyNWptQjd4bFA1SzBZbXdwV25jMjkxVGx3SXNXYTJpUWxmYXpVemtYM1poeEpOLTcycVk4YWdmcFI0YlZXT0xpajE2RGJJaGN4RURSMVNSQnJFYnBsS2dWcFpzVHkxazlTWmxtLW9DcE9aNDduNUZfYnVBeU9HRlJxMUpkOVlZdFRZR210MDJuRG9QM1hpeWFQQ214c25GTlFhUFVNcWJ2M1gxNGVxd3lLakRodzJzVHNlTTNOZTlock1DdlNib1Z3bngycVl1V2dTNjRuSHk4UkRIenVfNnh4OGtIUjZwa212UDlXNDN6bnl4RXRvSjVINm1VT055VFduOERkUTFXeVJXYzhzd1M0SUpySUVWOXNGQW1JSUlQU3FNc3VkTlhBYUMya04tR2lBYWNnMDNlVFpNSGVEWGY0THV1OEswY28tcEViQzZUYVp0XzJZU2trVl92SUdTcFplVnBzNmJEX2tnQ1ljQi1UNU5pLWJJSjUyQlBjejFta3BDUFg4UV92b190b3V0V3BDNlE1cGtlMXozVHpLZ0FVbW50MU9HMzdMU1hlUFhlNzZvV1EtaXJqM1FSclZrTjQ0RHk3UG9xNTBXRnZHVjZzaTJTNnZ6QlZPV05VQWljYTlKa3luTloxalduaTJHTFd2NUl2aElRY0g2NlZoUzNJYWwtemRGa0E?oc=5&hl=en-IL&gl=IL&ceid=IL:en "HTTP/1.1 200 OK"
+2026-03-09 21:48:13,888 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMirwFBVV95cUxOQXVwamhJWDVha0wxeTl2XzVFRV9sVDItX2t2Z0U1X0tDVDI2QWVWQlRyNWh0VUZRZXdvVUxYREl1cEFaODVGMzR1dFdGNkFMTTJpVXYtRmtlWHhOWjF5TEFRY0FuaHRzOUM2cTk3eVBnSHY2V1NlOVZNWHpNUmhadHQ1TmZucS1lWEMtWlpMQmhpWnRodWNyRi10Tl9PTE5salphS2F3N0pDWFRhLTNv?oc=5 "HTTP/1.1 302 Found"
+2026-03-09 21:48:13,998 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMirwFBVV95cUxOQXVwamhJWDVha0wxeTl2XzVFRV9sVDItX2t2Z0U1X0tDVDI2QWVWQlRyNWh0VUZRZXdvVUxYREl1cEFaODVGMzR1dFdGNkFMTTJpVXYtRmtlWHhOWjF5TEFRY0FuaHRzOUM2cTk3eVBnSHY2V1NlOVZNWHpNUmhadHQ1TmZucS1lWEMtWlpMQmhpWnRodWNyRi10Tl9PTE5salphS2F3N0pDWFRhLTNv?oc=5&hl=en-IL&gl=IL&ceid=IL:en "HTTP/1.1 200 OK"
+2026-03-09 21:48:15,075 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMiXkFVX3lxTE13TkE3WVNqenBaNU1XUUlyY3JsYXRnLVMtNGRPWE1CcE5YZ29MV0JFQjB4XzJEQ19xZFJwbVhVd3pwcGM4SDM0a0p0M1VScVpCaHZSVmUyTGZMLVhQcVE?oc=5 "HTTP/1.1 302 Found"
+2026-03-09 21:48:15,181 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMiXkFVX3lxTE13TkE3WVNqenBaNU1XUUlyY3JsYXRnLVMtNGRPWE1CcE5YZ29MV0JFQjB4XzJEQ19xZFJwbVhVd3pwcGM4SDM0a0p0M1VScVpCaHZSVmUyTGZMLVhQcVE?oc=5&hl=en-IL&gl=IL&ceid=IL:en "HTTP/1.1 200 OK"
+2026-03-09 21:48:17,020 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMia0FVX3lxTFBfeVVmMW9fck0yWF9DQm11MXhMWHNraUlVTHVXMGRsYU10RzQtT2IwYTd2ckJVWG80OTJwZGZlWElsOVh5LVgzN1UwWUplRDlJNUdIYzRsMklQdDdrYUU1S0Z3ckRBdDludzhn?oc=5 "HTTP/1.1 302 Found"
+2026-03-09 21:48:17,132 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMia0FVX3lxTFBfeVVmMW9fck0yWF9DQm11MXhMWHNraUlVTHVXMGRsYU10RzQtT2IwYTd2ckJVWG80OTJwZGZlWElsOVh5LVgzN1UwWUplRDlJNUdIYzRsMklQdDdrYUU1S0Z3ckRBdDludzhn?oc=5&hl=en-IL&gl=IL&ceid=IL:en "HTTP/1.1 200 OK"
+2026-03-09 21:48:17,876 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMiZkFVX3lxTE9rLW9sQWRtN3FPd01ucmljcXNkUEtWcndMN0dXd2tRVkNmYjZEMjE3WUYwWkd2Q1NaMEhxRkJGM3pWclpFSGk4Y3JsRzRMS0VGSVJwcjlQM0xLYjhmTW1XSDlVUE5HUQ?oc=5 "HTTP/1.1 302 Found"
+2026-03-09 21:48:18,164 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMiZkFVX3lxTE9rLW9sQWRtN3FPd01ucmljcXNkUEtWcndMN0dXd2tRVkNmYjZEMjE3WUYwWkd2Q1NaMEhxRkJGM3pWclpFSGk4Y3JsRzRMS0VGSVJwcjlQM0xLYjhmTW1XSDlVUE5HUQ?oc=5&hl=en-IL&gl=IL&ceid=IL:en "HTTP/1.1 200 OK"
+2026-03-09 21:48:19,178 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMiaEFVX3lxTFBWMzdLWDBWTGh5Nk5RTWRGYTlJOUZFTXBzV3c0UGo0QVpQZksyUng2WFNTU1BGVHN4TC02RHkxMzRqMVI0Y21zUlR6Z3lBMjRpaURjcGlTNGZoWndyZmRmQXhuUjI4c2dS?oc=5 "HTTP/1.1 302 Found"
+2026-03-09 21:48:19,293 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMiaEFVX3lxTFBWMzdLWDBWTGh5Nk5RTWRGYTlJOUZFTXBzV3c0UGo0QVpQZksyUng2WFNTU1BGVHN4TC02RHkxMzRqMVI0Y21zUlR6Z3lBMjRpaURjcGlTNGZoWndyZmRmQXhuUjI4c2dS?oc=5&hl=en-IL&gl=IL&ceid=IL:en "HTTP/1.1 200 OK"
+2026-03-09 21:48:21,377 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMic0FVX3lxTFBhMU5Uc19JN2hXc0RWd1RTUWNEVTR5dDJDR2RzUW9WM2ktNlYzTHVuNDVMWmx5dWd0cGpzTko1NjVGVlZaeXhOQnA4eDh4cGFTRGpmbjZHUW1uZGZZY25XWE5EQjA0RkF1Tllua1hvYjJEbFk?oc=5 "HTTP/1.1 302 Found"
+2026-03-09 21:48:21,679 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMic0FVX3lxTFBhMU5Uc19JN2hXc0RWd1RTUWNEVTR5dDJDR2RzUW9WM2ktNlYzTHVuNDVMWmx5dWd0cGpzTko1NjVGVlZaeXhOQnA4eDh4cGFTRGpmbjZHUW1uZGZZY25XWE5EQjA0RkF1Tllua1hvYjJEbFk?oc=5&hl=en-IL&gl=IL&ceid=IL:en "HTTP/1.1 200 OK"
+2026-03-09 21:48:22,706 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMiUEFVX3lxTE16TzhyYk9jY2NZZWllcDNPcVgtdUNoMTd2cnRwQ3dWT205d1BuZWU5OGJvazRLSlJ3ZG8wb1BiSVJ4ZzJfZ29sakFFWnlhOTJf?oc=5 "HTTP/1.1 302 Found"
+2026-03-09 21:48:22,988 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMiUEFVX3lxTE16TzhyYk9jY2NZZWllcDNPcVgtdUNoMTd2cnRwQ3dWT205d1BuZWU5OGJvazRLSlJ3ZG8wb1BiSVJ4ZzJfZ29sakFFWnlhOTJf?oc=5&hl=en-IL&gl=IL&ceid=IL:en "HTTP/1.1 200 OK"
+2026-03-09 21:48:24,005 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMijgFBVV95cUxNUmZNS25fZ0M5cU9ZLXhUWjY2RW9IZGlxTEE1Y3RmZDJISWRaclROWnl6YzVNdGZVVVZMdnB2M3o3WGowcG9oZ0tOZDhJOG16WDFtQXU0U2NjRERQdjhzczROTFMtYkZVUGZNQW5Gajk4T2VjWWM4YU0tVUl6R0ZQVmxBM2FRWjYzMF9fQ0FB?oc=5 "HTTP/1.1 302 Found"
+2026-03-09 21:48:24,125 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMijgFBVV95cUxNUmZNS25fZ0M5cU9ZLXhUWjY2RW9IZGlxTEE1Y3RmZDJISWRaclROWnl6YzVNdGZVVVZMdnB2M3o3WGowcG9oZ0tOZDhJOG16WDFtQXU0U2NjRERQdjhzczROTFMtYkZVUGZNQW5Gajk4T2VjWWM4YU0tVUl6R0ZQVmxBM2FRWjYzMF9fQ0FB?oc=5&hl=en-IL&gl=IL&ceid=IL:en "HTTP/1.1 200 OK"
+2026-03-09 21:48:27,457 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMipwFBVV95cUxOcEtjZmJQclRQdV9qd2VZbjRaVFpleDhITnR1eHR1eDNpUjFJMTcwcmJKWnFhdGtPMjJrYi05S045SUF6eTA4aFdOUHE0eGxhUEJqQTZsVEE5d2ZlZWNFX1dpcHVKdFgyR08wX29BcHNTaEJWd1h0bkRma0VJWUpsb2hEeHl3cGlvdnA0Q1VQczZPQWdDdWNKNnZveGhlbG81b3NwdDd0MA?oc=5 "HTTP/1.1 302 Found"
+2026-03-09 21:48:27,745 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMipwFBVV95cUxOcEtjZmJQclRQdV9qd2VZbjRaVFpleDhITnR1eHR1eDNpUjFJMTcwcmJKWnFhdGtPMjJrYi05S045SUF6eTA4aFdOUHE0eGxhUEJqQTZsVEE5d2ZlZWNFX1dpcHVKdFgyR08wX29BcHNTaEJWd1h0bkRma0VJWUpsb2hEeHl3cGlvdnA0Q1VQczZPQWdDdWNKNnZveGhlbG81b3NwdDd0MA?oc=5&hl=en-IL&gl=IL&ceid=IL:en "HTTP/1.1 200 OK"
+2026-03-09 21:48:28,579 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMiqAFBVV95cUxNMXBtcHg4eTI0UHNTWFktc3dubmN0dkg5VVVjRXRoRnpvSjdpU0hsLTZPOEpxN19oa2tMdFpLc29XaE00eEExZlFtQnJFNTh4VlBoZzBlOXdSQWdIQWJXS3BPSmNGQ2RKcTFGZUVJeUxMNkRtcDJWMm9FSlhhMjRtdklvejljMUF3SG54MnJnbnlYMGtHVmU3VnV0TWdxdFhIazNnVi1Yc1o?oc=5 "HTTP/1.1 302 Found"
+2026-03-09 21:48:28,688 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMiqAFBVV95cUxNMXBtcHg4eTI0UHNTWFktc3dubmN0dkg5VVVjRXRoRnpvSjdpU0hsLTZPOEpxN19oa2tMdFpLc29XaE00eEExZlFtQnJFNTh4VlBoZzBlOXdSQWdIQWJXS3BPSmNGQ2RKcTFGZUVJeUxMNkRtcDJWMm9FSlhhMjRtdklvejljMUF3SG54MnJnbnlYMGtHVmU3VnV0TWdxdFhIazNnVi1Yc1o?oc=5&hl=en-IL&gl=IL&ceid=IL:en "HTTP/1.1 200 OK"
+2026-03-09 21:48:29,974 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMi9wFBVV95cUxQdjk4dk5jMnRtdlBxR2ZBMThidllFajNCUkt1QllvYUpialpueE5zYUF6amt3YkhDeTN0SmVxb0trRUFZRFpfN2dNRlRrb0xTcmxGREhnczV1TmpsMUZZNUpFeGJOWnEwYVk1OG9WNkVKc0ZXWEY0N2ZkTEs4bDktVTJkR09hWXJUTDJrTXJscVJkRGtJWF9mMGlZT0JmaFRLSFpPb19BOXZPQ09CekxaVXBlWHBNd3NMcUFVQ0lPNEtYRC1SREktdjFqWU1uVTlkZjhmUWx5MTN6YmtIVWZ2STlaTWkwWVVqc2UxSGFHbmphajJwcFAw?oc=5 "HTTP/1.1 302 Found"
+2026-03-09 21:48:30,093 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMi9wFBVV95cUxQdjk4dk5jMnRtdlBxR2ZBMThidllFajNCUkt1QllvYUpialpueE5zYUF6amt3YkhDeTN0SmVxb0trRUFZRFpfN2dNRlRrb0xTcmxGREhnczV1TmpsMUZZNUpFeGJOWnEwYVk1OG9WNkVKc0ZXWEY0N2ZkTEs4bDktVTJkR09hWXJUTDJrTXJscVJkRGtJWF9mMGlZT0JmaFRLSFpPb19BOXZPQ09CekxaVXBlWHBNd3NMcUFVQ0lPNEtYRC1SREktdjFqWU1uVTlkZjhmUWx5MTN6YmtIVWZ2STlaTWkwWVVqc2UxSGFHbmphajJwcFAw?oc=5&hl=en-IL&gl=IL&ceid=IL:en "HTTP/1.1 200 OK"
+2026-03-09 21:48:31,658 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMikAFBVV95cUxNd2hDenRqMmtUNnBvZ1dzeFUxb1Roa2FQSnQwYUJLUXRrOFNMc0ZnMVNpQVRHN3UwYmtKY2FhSGdYU000RG5oZXpVazQwd3VtZXNjbmdDc1RYZUhmMVlLRW1US1V0VWwwY3NMRnc1bTg1WURwam1qTXVKM2k0UHJOR25YYjlpd1l4YmJMUjNZZXQ?oc=5 "HTTP/1.1 302 Found"
+2026-03-09 21:48:31,950 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMikAFBVV95cUxNd2hDenRqMmtUNnBvZ1dzeFUxb1Roa2FQSnQwYUJLUXRrOFNMc0ZnMVNpQVRHN3UwYmtKY2FhSGdYU000RG5oZXpVazQwd3VtZXNjbmdDc1RYZUhmMVlLRW1US1V0VWwwY3NMRnc1bTg1WURwam1qTXVKM2k0UHJOR25YYjlpd1l4YmJMUjNZZXQ?oc=5&hl=en-IL&gl=IL&ceid=IL:en "HTTP/1.1 200 OK"
+2026-03-09 21:48:32,971 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMinwFBVV95cUxPN1dIRUJGZ3hoMzYtT1FJRnVEUXRDM1ZETW5WQmk5Ykt3eVU3T3VYUXlMTHZxbjZCcG90SW5Ja1U1OC0xR2NnUV9TeDFXT29uODlySUpfZE5lZkI3eVp4MDJFWmd1RnVSOHBfdkJ3MlhuOHF3Ty16WUxLVFg1MTdiLWNySHppcGlaM1UtNlMxN3BtWDZKMDFGVmVBeEJ2Ym8?oc=5 "HTTP/1.1 302 Found"
+2026-03-09 21:48:33,079 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMinwFBVV95cUxPN1dIRUJGZ3hoMzYtT1FJRnVEUXRDM1ZETW5WQmk5Ykt3eVU3T3VYUXlMTHZxbjZCcG90SW5Ja1U1OC0xR2NnUV9TeDFXT29uODlySUpfZE5lZkI3eVp4MDJFWmd1RnVSOHBfdkJ3MlhuOHF3Ty16WUxLVFg1MTdiLWNySHppcGlaM1UtNlMxN3BtWDZKMDFGVmVBeEJ2Ym8?oc=5&hl=en-IL&gl=IL&ceid=IL:en "HTTP/1.1 200 OK"
+2026-03-09 21:48:33,777 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMijgFBVV95cUxPSGI2c2Q3X3lmZF9ranBZaXlPbzN2MmNNY2lXVVUxM0FFZloyNzhIUWRodUpCYy1NaE41N0hRazRKM3Q1cE9IbUVxLTB2VDF1U0FseVZaSG1CZVE1STNicldyemdlVWxTN0dNQXlqWmZKWmRLTUdSdHNVbXBDWERUWjVMckF4SFNwMVozVnR3?oc=5 "HTTP/1.1 302 Found"
+2026-03-09 21:48:34,076 INFO HTTP Request: GET https://news.google.com/rss/articles/CBMijgFBVV95cUxPSGI2c2Q3X3lmZF9ranBZaXlPbzN2MmNNY2lXVVUxM0FFZloyNzhIUWRodUpCYy1NaE41N0hRazRKM3Q1cE9IbUVxLTB2VDF1U0FseVZaSG1CZVE1STNicldyemdlVWxTN0dNQXlqWmZKWmRLTUdSdHNVbXBDWERUWjVMckF4SFNwMVozVnR3?oc=5&hl=en-IL&gl=IL&ceid=IL:en "HTTP/1.1 200 OK"

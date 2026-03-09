@@ -1,7 +1,42 @@
-﻿.venv/
+﻿# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Local env / secrets
+.env
+.env.*
+*.env
+
+# Build / test / cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# App runtime data
 news.db
+*.db
 output/
 server.out.log
 server.err.log
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
