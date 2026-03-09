@@ -1,16 +1,16 @@
 version: 1.0
-runtime: python3
+runtime: python311
+
 build:
   commands:
     build:
       - pip install --upgrade pip
       - pip install -r requirements.txt
+
 run:
-  runtime-version: 3.9
-  command: gunicorn --chdir src --bind 0.0.0.0:$PORT app:app --workers 1 --threads 6 --timeout 120
+  command: gunicorn --chdir src --bind 0.0.0.0:8000 app:app --workers 1 --threads 6 --timeout 120
   network:
     port: 8000
-    env: PORT
   env:
     - name: RUN_BACKGROUND_WORKER
       value: "1"
