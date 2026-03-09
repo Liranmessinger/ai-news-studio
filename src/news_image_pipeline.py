@@ -38,15 +38,20 @@ def load_config(config_path: Path) -> dict[str, Any]:
     config = json.loads(raw)
     if "sources" not in config or not config["sources"]:
         raise ValueError("config.sources is required and cannot be empty")
+
     config.setdefault("styles", DEFAULT_STYLES)
     config.setdefault("output_dir", "output")
     config.setdefault("max_items_per_source", 5)
     config.setdefault("timeout_seconds", 20)
+
     config.setdefault("image", {})
+    config["image"].setdefault("provider", "generic")
     config["image"].setdefault("model", "nano-banana-2")
     config["image"].setdefault("size", "1536x1024")
+    config["image"].setdefault("quality", "medium")
     config["image"].setdefault("endpoint", "")
-    config["image"].setdefault("api_key_env", "IMAGE_API_KEY")
+    config["image"].setdefault("api_key_env", "OPENAI_API_KEY")
+
     config.setdefault("summarization", {})
     config["summarization"].setdefault("mode", "extractive")
     config["summarization"].setdefault("endpoint", "")
@@ -168,17 +173,21 @@ def build_image_prompt(article: Article, summary: str, style_name: str, style_de
     )
 
 
-def write_prompt_file(output_dir: Path, article: Article, style_name: str, prompt: str) -> Path:
+def _model_slug(model: str) -> str:
+    return re.sub(r"[^a-zA-Z0-9]+", "-", (model or "image-model").lower()).strip("-")[:30] or "image-model"
+
+
+def write_prompt_file(output_dir: Path, article: Article, style_name: str, prompt: str, model: str) -> Path:
     slug = re.sub(r"[^a-zA-Z0-9]+", "-", article.title.lower()).strip("-")[:60] or "news-item"
-    filename = f"{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{style_name}_{slug}.txt"
+    filename = f"{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{_model_slug(model)}_{style_name}_{slug}.txt"
     path = output_dir / filename
     path.write_text(prompt, encoding="utf-8")
     return path
 
 
-def save_image_bytes(image_bytes: bytes, output_dir: Path, article: Article, style_name: str) -> Path:
+def save_image_bytes(image_bytes: bytes, output_dir: Path, article: Article, style_name: str, model: str) -> Path:
     slug = re.sub(r"[^a-zA-Z0-9]+", "-", article.title.lower()).strip("-")[:60] or "news-item"
-    filename = f"{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{style_name}_{slug}.png"
+    filename = f"{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{_model_slug(model)}_{style_name}_{slug}.png"
     path = output_dir / filename
     path.write_bytes(image_bytes)
     return path
@@ -192,15 +201,26 @@ def generate_image(
     api_key = os.getenv(image_cfg["api_key_env"], "")
     model = image_cfg["model"]
     size = image_cfg["size"]
+    provider = image_cfg.get("provider", "generic").lower().strip()
+    quality = image_cfg.get("quality", "medium")
 
     if not endpoint or not api_key:
-        return write_prompt_file(output_dir, article, style_name, prompt)
+        return write_prompt_file(output_dir, article, style_name, prompt, model)
 
-    payload = {
-        "model": model,
-        "prompt": prompt,
-        "size": size,
-    }
+    if provider == "openai":
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "size": size,
+            "quality": quality,
+        }
+    else:
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "size": size,
+        }
+
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
     with httpx.Client(timeout=timeout) as client:
@@ -208,16 +228,26 @@ def generate_image(
         response.raise_for_status()
         data = response.json()
 
+        if isinstance(data, dict) and isinstance(data.get("data"), list) and data["data"]:
+            first = data["data"][0]
+            if isinstance(first, dict) and first.get("b64_json"):
+                image_bytes = base64.b64decode(first["b64_json"])
+                return save_image_bytes(image_bytes, output_dir, article, style_name, model)
+            if isinstance(first, dict) and first.get("url"):
+                image_resp = client.get(first["url"])
+                image_resp.raise_for_status()
+                return save_image_bytes(image_resp.content, output_dir, article, style_name, model)
+
         if "image_base64" in data:
             image_bytes = base64.b64decode(data["image_base64"])
-            return save_image_bytes(image_bytes, output_dir, article, style_name)
+            return save_image_bytes(image_bytes, output_dir, article, style_name, model)
 
         if "url" in data:
             image_resp = client.get(data["url"])
             image_resp.raise_for_status()
-            return save_image_bytes(image_resp.content, output_dir, article, style_name)
+            return save_image_bytes(image_resp.content, output_dir, article, style_name, model)
 
-    return write_prompt_file(output_dir, article, style_name, prompt)
+    return write_prompt_file(output_dir, article, style_name, prompt, model)
 
 
 def process(config_path: Path, style: str, dry_run: bool) -> None:
@@ -247,9 +277,10 @@ def process(config_path: Path, style: str, dry_run: bool) -> None:
             summary = extractive_summary(article)
 
         prompt = build_image_prompt(article, summary, style, style_desc)
+        model_name = config["image"]["model"]
 
         if dry_run:
-            output_path = write_prompt_file(output_dir, article, style, prompt)
+            output_path = write_prompt_file(output_dir, article, style, prompt, model_name)
         else:
             output_path = generate_image(prompt, article, style, config, output_dir, timeout)
 
@@ -260,6 +291,7 @@ def process(config_path: Path, style: str, dry_run: bool) -> None:
                 "link": article.link,
                 "category": article.category,
                 "output": str(output_path),
+                "model": model_name,
             }
         )
 
@@ -279,4 +311,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

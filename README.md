@@ -3,7 +3,7 @@
 מערכת מלאה שמריצה מנוע חדשות ברקע ומציגה את התוצרים באתר:
 - סריקה מפידים (Rotter, Ynet, Calcalist, Reuters ועוד).
 - סיכום לכל ידיעה.
-- יצירת תמונה דרך מודל תמונות (למשל `nano-banana-2`) או שמירת פרומפט.
+- יצירת תמונה דרך OpenAI Images (ברירת מחדל: `gpt-image-1`) או שמירת פרומפט.
 - שמירה ב־SQLite עם כותרת, מקור, קטגוריה, קישור, תאריך פרסום ותאריך יצירה.
 - תצוגת אתר RTL מעוצבת + API לשימוש עתידי באפליקציה.
 
@@ -23,7 +23,7 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-## הגדרת API לתמונות (nano-banana-2)
+## הגדרת API לתמונות (OpenAI Images)
 1. הגדר `IMAGE_API_KEY`:
 ```powershell
 $env:IMAGE_API_KEY = "YOUR_KEY"
@@ -66,3 +66,5 @@ docker run -p 8000:8000 --name ai-news-studio ai-news-studio
 ```
 
 > ב־production מומלץ למפות volume כדי לשמור `news.db` ו־`output` גם אחרי restart.
+
+
