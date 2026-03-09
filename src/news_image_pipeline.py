@@ -34,6 +34,7 @@ class Article:
     published_at: datetime | None
     content_text: str
     category: str
+    source_image_url: str | None = None
 
 
 def load_config(config_path: Path) -> dict[str, Any]:
@@ -81,6 +82,35 @@ def parse_published(value: str | None) -> datetime | None:
         return None
 
 
+
+def extract_entry_image_url(entry: Any) -> str | None:
+    try:
+        media_content = getattr(entry, "media_content", None)
+        if media_content and isinstance(media_content, list):
+            for item in media_content:
+                if isinstance(item, dict) and item.get("url"):
+                    return str(item["url"]).strip()
+
+        media_thumbnail = getattr(entry, "media_thumbnail", None)
+        if media_thumbnail and isinstance(media_thumbnail, list):
+            for item in media_thumbnail:
+                if isinstance(item, dict) and item.get("url"):
+                    return str(item["url"]).strip()
+
+        links = getattr(entry, "links", None)
+        if links and isinstance(links, list):
+            for l in links:
+                if not isinstance(l, dict):
+                    continue
+                href = str(l.get("href", "")).strip()
+                rel = str(l.get("rel", "")).lower()
+                typ = str(l.get("type", "")).lower()
+                if href and ("image" in typ or rel == "enclosure"):
+                    return href
+    except Exception:
+        return None
+
+    return None
 def scan_feed(source: dict[str, Any], max_items: int) -> list[Article]:
     parsed = feedparser.parse(source["url"])
     source_name = source.get("name", source["url"])
@@ -105,6 +135,7 @@ def scan_feed(source: dict[str, Any], max_items: int) -> list[Article]:
                 published_at=parse_published(getattr(entry, "published", None)),
                 content_text=body,
                 category=category,
+                source_image_url=extract_entry_image_url(entry),
             )
         )
     return results
@@ -359,3 +390,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+

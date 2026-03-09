@@ -93,6 +93,8 @@ def remove_summary_dup(summary: str, title: str, category: str) -> str:
     t = normalize_text(title)
     if not s:
         return fallback_subtitle(t, category)
+    if "אין תקציר זמין" in s:
+        return fallback_subtitle(t, category)
     if t and s.lower() == t.lower():
         return fallback_subtitle(t, category)
     if t and s.lower().startswith(t.lower()):
@@ -100,7 +102,6 @@ def remove_summary_dup(summary: str, title: str, category: str) -> str:
     if len(s) < 12:
         return fallback_subtitle(t, category)
     return s
-
 def normalize_text(text: str) -> str:
     value = html.unescape((text or "").strip())
     value = re.sub(r"&#\d+;?", "", value)
@@ -377,6 +378,8 @@ def run_generation_cycle() -> dict[str, int]:
             rel_path = output_path.relative_to(BASE_DIR).as_posix()
             image_path = rel_path if suffix in {".png", ".jpg", ".jpeg", ".webp"} else None
             prompt_path = rel_path if suffix == ".txt" else None
+            if not image_path and getattr(article, "source_image_url", None):
+                image_path = article.source_image_url
 
             inserted = insert_news_item(
                 {
@@ -477,5 +480,11 @@ app = create_app()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
+
+
+
+
+
+
 
 
