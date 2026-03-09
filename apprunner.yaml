@@ -1,4 +1,4 @@
-﻿version: 1.0
+version: 1.0
 runtime: python3
 build:
   commands:
@@ -16,9 +16,3 @@ run:
       value: "1"
     - name: FLASK_DEBUG
       value: "0"
-  health-check:
-    path: /
-    interval: 10
-    timeout: 5
-    healthy-threshold: 1
-    unhealthy-threshold: 5
