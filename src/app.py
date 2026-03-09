@@ -247,6 +247,44 @@ def insert_news_item(item: dict[str, Any]) -> bool:
             return False
 
 
+def update_missing_image(
+    link: str,
+    style_name: str,
+    source_name: str,
+    title: str,
+    published_at: str | None,
+    image_url: str | None,
+) -> None:
+    if not image_url:
+        return
+
+    with sqlite3.connect(DB_PATH) as conn:
+        if link:
+            conn.execute(
+                """
+                UPDATE news_items
+                SET image_path = ?
+                WHERE link = ? AND style_name = ?
+                  AND (image_path IS NULL OR image_path = '')
+                """,
+                (image_url, link, style_name),
+            )
+            return
+
+        conn.execute(
+            """
+            UPDATE news_items
+            SET image_path = ?
+            WHERE source_name = ?
+              AND title = ?
+              AND COALESCE(published_at, '') = COALESCE(?, '')
+              AND style_name = ?
+              AND (image_path IS NULL OR image_path = '')
+            """,
+            (image_url, source_name, title, published_at, style_name),
+        )
+
+
 def get_news(
     limit: int = 100,
     category: str | None = None,
@@ -364,6 +402,14 @@ def run_generation_cycle() -> dict[str, int]:
             published_at = article.published_at.isoformat() if article.published_at else None
 
             if news_exists(link, style_name, article.source_name, title, published_at):
+                update_missing_image(
+                    link,
+                    style_name,
+                    article.source_name,
+                    title,
+                    published_at,
+                    getattr(article, "source_image_url", None),
+                )
                 continue
 
             summary_mode = config["summarization"]["mode"]
@@ -480,6 +526,8 @@ app = create_app()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
+
+
 
 
 

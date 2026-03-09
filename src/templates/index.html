@@ -14,10 +14,21 @@
 
   <header class="topbar">
     <div class="theme-row" id="themeRow">
-      <button class="theme-chip active" data-theme="ocean">Ocean</button>
-      <button class="theme-chip" data-theme="sunset">Sunset</button>
-      <button class="theme-chip" data-theme="mint">Mint</button>
-      <button class="theme-chip" data-theme="mono">Mono</button>
+      <button class="theme-chip active" data-theme="ocean" title="אושן" aria-label="אושן">
+        <span class="theme-icon icon-ocean"></span>
+      </button>
+      <button class="theme-chip" data-theme="sunset" title="סאנסט" aria-label="סאנסט">
+        <span class="theme-icon icon-sunset"></span>
+      </button>
+      <button class="theme-chip" data-theme="mint" title="מינט" aria-label="מינט">
+        <span class="theme-icon icon-mint"></span>
+      </button>
+      <button class="theme-chip" data-theme="mono" title="מונו" aria-label="מונו">
+        <span class="theme-icon icon-mono"></span>
+      </button>
+      <button class="theme-chip" data-theme="white" title="לבן" aria-label="לבן">
+        <span class="theme-icon icon-white"></span>
+      </button>
     </div>
 
     <div class="stats">
@@ -85,9 +96,15 @@
           <h2>{{ item.title }}</h2>
           <p>{{ item.summary }}</p>
           {% if item.image_path %}
+          {% if item.image_path.startswith('http') %}
+          <a href="{{ item.image_path }}" target="_blank" rel="noopener">
+            <img src="{{ item.image_path }}" alt="תמונת ידיעה" loading="lazy" referrerpolicy="no-referrer" />
+          </a>
+          {% else %}
           <a href="/files/{{ item.image_path }}" target="_blank" rel="noopener">
             <img src="/files/{{ item.image_path }}" alt="תמונת ידיעה" loading="lazy" />
           </a>
+          {% endif %}
           {% else %}
           <div class="no-image">נוצר פרומפט בלבד (אין endpoint תקין כרגע)</div>
           {% endif %}
@@ -204,3 +221,5 @@
   </script>
 </body>
 </html>
+
+

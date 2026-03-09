@@ -2,6 +2,7 @@
   --bg: #081019;
   --shell: #0c1a2f;
   --topbar-a: #0f2f56;
+  --bg-mid: #0b1220;
   --topbar-b: #0f2144;
   --panel: #10223d;
   --line: #2b4266;
@@ -15,6 +16,7 @@ body[data-theme="sunset"] {
   --bg: #1a0f0d;
   --shell: #2b1713;
   --topbar-a: #5b2415;
+  --bg-mid: #1f1311;
   --topbar-b: #3a1a16;
   --panel: #301d18;
   --line: #6a3a2b;
@@ -28,6 +30,7 @@ body[data-theme="mint"] {
   --bg: #071411;
   --shell: #0e2720;
   --topbar-a: #124236;
+  --bg-mid: #0d1c18;
   --topbar-b: #113029;
   --panel: #15372e;
   --line: #2a5f50;
@@ -41,6 +44,7 @@ body[data-theme="mono"] {
   --bg: #111214;
   --shell: #1a1b1f;
   --topbar-a: #272a31;
+  --bg-mid: #15171b;
   --topbar-b: #20232a;
   --panel: #23262e;
   --line: #3b404b;
@@ -50,12 +54,25 @@ body[data-theme="mono"] {
   --accent-2: #d3dae6;
 }
 
+body[data-theme="white"] {
+  --bg: #eef3fb;
+  --shell: #f8fbff;
+  --topbar-a: #ffffff;
+  --bg-mid: #dde8f6;
+  --topbar-b: #edf3fb;
+  --panel: #ffffff;
+  --line: #c9d8ea;
+  --text: #13253c;
+  --muted: #5b7291;
+  --accent: #2d7dd9;
+  --accent-2: #5ab2ff;
+}
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
   padding: 14px;
-  background: linear-gradient(155deg, var(--bg), #0b1220 50%, var(--bg));
+  background: linear-gradient(155deg, var(--bg), var(--bg-mid) 50%, var(--bg));
   color: var(--text);
   font-family: "Heebo", sans-serif;
 }
@@ -90,8 +107,12 @@ body {
   background: color-mix(in srgb, var(--topbar-b) 75%, black);
   color: var(--text);
   border-radius: 999px;
-  padding: 6px 11px;
-  font-size: 0.78rem;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   cursor: pointer;
 }
 
@@ -99,6 +120,19 @@ body {
   background: linear-gradient(130deg, color-mix(in srgb, var(--accent) 32%, transparent), color-mix(in srgb, var(--accent-2) 28%, transparent));
   border-color: var(--accent-2);
 }
+.theme-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-block;
+  border: 1px solid color-mix(in srgb, var(--text) 35%, transparent);
+}
+
+.icon-ocean { background: linear-gradient(145deg, #33b0ff, #0e5fe0); }
+.icon-sunset { background: linear-gradient(145deg, #ff8f4a, #ff4e5d); }
+.icon-mint { background: linear-gradient(145deg, #4ee4b1, #1cbe8d); }
+.icon-mono { background: linear-gradient(145deg, #9aa4b7, #4e5665); }
+.icon-white { background: linear-gradient(145deg, #ffffff, #d6e4f5); }
 
 .stats {
   display: flex;
@@ -347,3 +381,6 @@ footer {
     flex-direction: column;
   }
 }
+
+
+
