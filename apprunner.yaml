@@ -6,7 +6,7 @@ build:
       - pip install --upgrade pip
       - pip install -r requirements.txt
 run:
-  runtime-version: 3.11
+  runtime-version: 3.9
   command: gunicorn --chdir src --bind 0.0.0.0:$PORT app:app --workers 1 --threads 6 --timeout 120
   network:
     port: 8000
