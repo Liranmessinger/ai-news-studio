@@ -128,14 +128,18 @@
     </section>
   </section>
 
-  <script>
+    <script>
     const params = new URLSearchParams(location.search);
     const state = {
       category: params.get("category") || "",
       style: params.get("style") || "",
       days: params.get("days") || "",
+      view: params.get("view") || localStorage.getItem("news_view") || "grid",
       theme: localStorage.getItem("news_theme") || "ocean",
     };
+
+    let allItems = {{ items|tojson }};
+    let lastSignature = "";
 
     function parseDate(value) {
       if (!value) return null;
@@ -143,17 +147,30 @@
       return Number.isNaN(d.getTime()) ? null : d;
     }
 
-    function applyFilter() {
+    function escapeHtml(value) {
+      return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function itemSignature(items) {
+      return items.map(i => `${i.id || ""}|${i.created_at || ""}|${i.image_path || ""}|${i.summary || ""}`).join(";");
+    }
+
+    function getFilteredItems() {
       const now = new Date();
       const daysNum = parseInt(state.days || "0", 10);
 
-      document.querySelectorAll(".card").forEach(card => {
-        const okCategory = !state.category || card.dataset.category === state.category;
-        const okStyle = !state.style || card.dataset.style === state.style;
+      return allItems.filter(item => {
+        const okCategory = !state.category || item.category === state.category;
+        const okStyle = !state.style || item.style_name === state.style;
 
         let okDays = true;
         if (daysNum > 0) {
-          const d = parseDate(card.dataset.date || "");
+          const d = parseDate(item.published_at || item.created_at || "");
           if (!d) {
             okDays = false;
           } else {
@@ -162,8 +179,71 @@
           }
         }
 
-        card.style.display = okCategory && okStyle && okDays ? "" : "none";
+        return okCategory && okStyle && okDays;
       });
+    }
+
+    function cardHtml(item) {
+      const title = escapeHtml(item.title || "ללא כותרת");
+      const summary = escapeHtml(item.summary || "");
+      const categoryLabel = escapeHtml(item.category_label || item.category || "");
+      const styleLabel = escapeHtml(item.style_label || item.style_name || "");
+      const modelName = escapeHtml(item.model_name || "");
+      const sourceName = escapeHtml(item.source_name || "");
+      const dateText = escapeHtml(item.published_at || item.created_at || "");
+      const link = item.link || "";
+      const promptPath = item.prompt_path || "";
+      const imagePath = item.image_path || "";
+
+      let imageBlock = '<div class="no-image">נוצר פרומפט בלבד (אין endpoint תקין כרגע)</div>';
+      if (imagePath) {
+        if (imagePath.startsWith("http")) {
+          imageBlock = `<a href="${escapeHtml(imagePath)}" target="_blank" rel="noopener"><img src="${escapeHtml(imagePath)}" alt="תמונת ידיעה" loading="lazy" referrerpolicy="no-referrer" /></a>`;
+        } else {
+          imageBlock = `<a href="/files/${escapeHtml(imagePath)}" target="_blank" rel="noopener"><img src="/files/${escapeHtml(imagePath)}" alt="תמונת ידיעה" loading="lazy" /></a>`;
+        }
+      }
+
+      return `
+        <article class="card" data-category="${escapeHtml(item.category || "")}" data-style="${escapeHtml(item.style_name || "")}" data-date="${escapeHtml(item.published_at || item.created_at || "")}">
+          <div class="meta">
+            <span class="pill category">${categoryLabel}</span>
+            <span class="pill style">${styleLabel}</span>
+            ${modelName ? `<span class="pill model">${modelName}</span>` : ""}
+          </div>
+          <h2>${title}</h2>
+          <p>${summary}</p>
+          ${imageBlock}
+          <footer>
+            <small>${sourceName}</small>
+            <small>${dateText}</small>
+          </footer>
+          <div class="links">
+            ${link ? `<a href="${escapeHtml(link)}" target="_blank" rel="noopener">לכתבה</a>` : ""}
+            ${promptPath ? `<a href="/files/${escapeHtml(promptPath)}" target="_blank" rel="noopener">לפרומפט</a>` : ""}
+          </div>
+        </article>
+      `;
+    }
+
+    function renderFeed() {
+      const newsFeed = document.getElementById("newsFeed");
+      if (!newsFeed) return;
+
+      const items = getFilteredItems();
+      if (!items.length) {
+        newsFeed.innerHTML = '<div class="no-image">לא נמצאו ידיעות לסינון שבחרת.</div>';
+        return;
+      }
+
+      newsFeed.innerHTML = items.map(cardHtml).join("");
+    }
+
+    function applyFilter() {
+      const newsFeed = document.getElementById("newsFeed");
+      if (newsFeed) {
+        newsFeed.classList.toggle("list-view", state.view === "list");
+      }
 
       document.querySelectorAll(".chip[data-filter-type]").forEach(chip => {
         const t = chip.dataset.filterType;
@@ -175,7 +255,11 @@
       if (state.category) qs.set("category", state.category);
       if (state.style) qs.set("style", state.style);
       if (state.days) qs.set("days", state.days);
+      if (state.view && state.view !== "grid") qs.set("view", state.view);
       history.replaceState({}, "", qs.toString() ? `?${qs.toString()}` : location.pathname);
+
+      localStorage.setItem("news_view", state.view || "grid");
+      renderFeed();
     }
 
     function applyTheme() {
@@ -184,6 +268,21 @@
         chip.classList.toggle("active", chip.dataset.theme === state.theme);
       });
       localStorage.setItem("news_theme", state.theme);
+    }
+
+    async function refreshNewsData() {
+      try {
+        const response = await fetch("/api/news?limit=180", { cache: "no-store" });
+        if (!response.ok) return;
+        const data = await response.json();
+        const incoming = Array.isArray(data.items) ? data.items : [];
+        const sig = itemSignature(incoming);
+        if (sig && sig === lastSignature) return;
+        allItems = incoming;
+        lastSignature = sig;
+        renderFeed();
+      } catch (_) {
+      }
     }
 
     document.querySelectorAll(".chip[data-filter-type]").forEach(chip => {
@@ -221,6 +320,7 @@
 
     applyTheme();
     applyFilter();
+    lastSignature = itemSignature(allItems);
 
     const rail = document.getElementById("headlineRail");
     const railA = document.getElementById("headlineListA");
@@ -240,11 +340,12 @@
     }
 
     setInterval(() => {
-      if (!document.hidden) location.reload();
+      if (!document.hidden) refreshNewsData();
     }, 30000);
   </script>
 </body>
 </html>
+
 
 
 

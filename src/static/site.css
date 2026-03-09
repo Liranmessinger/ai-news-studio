@@ -389,6 +389,29 @@ body {
   gap: 12px;
 }
 
+.feed.list-view {
+  display: block;
+}
+
+.feed.list-view .card {
+  margin-bottom: 10px;
+  border-radius: 12px;
+  padding: 11px 12px;
+}
+
+.feed.list-view .card:last-child {
+  margin-bottom: 0;
+}
+
+.feed.list-view .card p {
+  min-height: 0;
+}
+
+.feed.list-view .card img {
+  max-height: 140px;
+  object-fit: cover;
+}
+
 .card {
   background: color-mix(in srgb, var(--panel) 90%, transparent);
   border: 1px solid var(--line);
@@ -513,6 +536,8 @@ footer {
     transform: translateY(-50%);
   }
 }
+
+
 
 
 
