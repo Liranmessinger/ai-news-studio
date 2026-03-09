@@ -1,6 +1,6 @@
 ﻿{
     "output_dir":  "output",
-    "max_items_per_source":  3,
+    "max_items_per_source":  1,
     "timeout_seconds":  30,
     "scheduler_interval_minutes":  15,
     "scheduler_interval_seconds":  30,
@@ -22,7 +22,10 @@
                                "israel-security":  "dramatic",
                                "culture":  "clean",
                                "sports":  "clean",
-                               "israel-sports":  "clean"
+                               "israel-sports":  "clean",
+                               "israel-football":  "clean",
+                               "nba":  "clean",
+                               "world-football":  "clean"
                            },
     "sources":  [
                     {
@@ -134,6 +137,31 @@
                         "name":  "Google News - i24news",
                         "url":  "https://news.google.com/rss/search?q=site%3Ai24news.tv%2Fhe\u0026hl=he\u0026gl=IL\u0026ceid=IL%3Ahe",
                         "category":  "israel-general"
+                    },
+                    {
+                        "name":  "Sport5 Football",
+                        "url":  "https://news.google.com/rss/search?q=site%3Asport5.co.il+%D7%9B%D7%93%D7%95%D7%A8%D7%92%D7%9C\u0026hl=he\u0026gl=IL\u0026ceid=IL:he",
+                        "category":  "israel-football"
+                    },
+                    {
+                        "name":  "Google News NBA",
+                        "url":  "https://news.google.com/rss/search?q=NBA\u0026hl=en-US\u0026gl=US\u0026ceid=US:en",
+                        "category":  "nba"
+                    },
+                    {
+                        "name":  "Google News Israeli Football",
+                        "url":  "https://news.google.com/rss/search?q=%D7%9B%D7%93%D7%95%D7%A8%D7%92%D7%9C+%D7%99%D7%A9%D7%A8%D7%90%D7%9C\u0026hl=he\u0026gl=IL\u0026ceid=IL:he",
+                        "category":  "israel-football"
+                    },
+                    {
+                        "name":  "Google News World Football",
+                        "url":  "https://news.google.com/rss/search?q=world+football\u0026hl=en-US\u0026gl=US\u0026ceid=US:en",
+                        "category":  "world-football"
+                    },
+                    {
+                        "name":  "Google News Business",
+                        "url":  "https://news.google.com/rss/search?q=business+news\u0026hl=en-US\u0026gl=US\u0026ceid=US:en",
+                        "category":  "world-economy"
                     }
                 ],
     "styles":  {

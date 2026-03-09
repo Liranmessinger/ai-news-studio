@@ -43,12 +43,12 @@
 
   <section class="content-shell">
     <section class="quick-filters">
-      <div class="filter-row" id="daysRow">
-        <button class="chip active" data-filter-type="days" data-value="">כל הזמן</button>
-        <button class="chip" data-filter-type="days" data-value="1">היום</button>
-        <button class="chip" data-filter-type="days" data-value="3">3 ימים</button>
-        <button class="chip" data-filter-type="days" data-value="7">7 ימים</button>
-        <button class="chip" data-filter-type="days" data-value="30">30 ימים</button>
+      <div class="filter-row" id="hoursRow">
+        <button class="chip" data-filter-type="hours" data-value="1">שעה</button>
+        <button class="chip" data-filter-type="hours" data-value="3">3 שעות</button>
+        <button class="chip" data-filter-type="hours" data-value="6">6 שעות</button>
+        <button class="chip" data-filter-type="hours" data-value="12">12 שעות</button>
+        <button class="chip active" data-filter-type="hours" data-value="24">24 שעות</button>
       </div>
 
       <div class="filter-row" id="categoryRow">
@@ -136,7 +136,7 @@
     const state = {
       category: params.get("category") || "",
       style: params.get("style") || "",
-      days: params.get("days") || "",
+      hours: params.get("hours") || "24",
       view: params.get("view") || localStorage.getItem("news_view") || "grid",
       theme: localStorage.getItem("news_theme") || "ocean",
     };
@@ -165,24 +165,24 @@
 
     function getFilteredItems() {
       const now = new Date();
-      const daysNum = parseInt(state.days || "0", 10);
+      const hoursNum = parseInt(state.hours || "24", 10);
 
       return allItems.filter(item => {
         const okCategory = !state.category || item.category === state.category;
         const okStyle = !state.style || item.style_name === state.style;
 
-        let okDays = true;
-        if (daysNum > 0) {
+        let okHours = true;
+        if (hoursNum > 0) {
           const d = parseDate(item.published_at || item.created_at || "");
           if (!d) {
-            okDays = false;
+            okHours = false;
           } else {
             const diffMs = now - d;
-            okDays = diffMs >= 0 && diffMs <= daysNum * 24 * 60 * 60 * 1000;
+            okHours = diffMs >= 0 && diffMs <= hoursNum * 60 * 60 * 1000;
           }
         }
 
-        return okCategory && okStyle && okDays;
+        return okCategory && okStyle && okHours;
       });
     }
 
@@ -261,7 +261,7 @@
       const qs = new URLSearchParams();
       if (state.category) qs.set("category", state.category);
       if (state.style) qs.set("style", state.style);
-      if (state.days) qs.set("days", state.days);
+      if (state.hours) qs.set("hours", state.hours);
       if (state.view && state.view !== "grid") qs.set("view", state.view);
       history.replaceState({}, "", qs.toString() ? `?${qs.toString()}` : location.pathname);
 
@@ -279,7 +279,7 @@
 
     async function refreshNewsData() {
       try {
-        const response = await fetch("/api/news?limit=180", { cache: "no-store" });
+        const response = await fetch(`/api/news?limit=180&hours=${encodeURIComponent(state.hours || "24")}`, { cache: "no-store" });
         if (!response.ok) return;
         const data = await response.json();
         const incoming = Array.isArray(data.items) ? data.items : [];
@@ -352,15 +352,4 @@
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
 

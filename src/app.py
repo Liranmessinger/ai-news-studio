@@ -32,6 +32,9 @@ CATEGORY_LABELS = {
     "israel-security": "ישראל - ביטחון",
     "israel-economy": "ישראל - כלכלה",
     "israel-sports": "ישראל - ספורט",
+    "israel-football": "כדורגל ישראלי",
+    "nba": "כדורסל - NBA",
+    "world-football": "כדורגל עולמי",
     "world-general": "עולם - כללי",
     "world-politics": "עולם - פוליטיקה",
     "world-economy": "עולם - כלכלה",
@@ -162,6 +165,10 @@ def emoji_for_item(category: str, title: str, summary: str) -> str:
     c = (category or "").lower()
     t = f"{title} {summary}".lower()
 
+    if "nba" in c or "basketball" in c or any(k in t for k in ["nba", "כדורסל"]):
+        return "🏀"
+    if "football" in c or "soccer" in c or any(k in t for k in ["כדורגל", "ליגה", "premier league", "champions league"]):
+        return "⚽"
     if "sports" in c or "ספורט" in t:
         return "⚽"
     if "economy" in c or "finance" in c or any(k in t for k in ["כלכלה", "בורסה", "שוק", "דולר", "ריבית"]):
@@ -338,7 +345,7 @@ def get_news(
     limit: int = 100,
     category: str | None = None,
     style: str | None = None,
-    days: int | None = None,
+    hours: int | None = 24,
 ) -> list[dict[str, Any]]:
     sql = """
         SELECT id, source_name, title, summary, category, link, published_at, created_at,
@@ -361,7 +368,7 @@ def get_news(
         rows = conn.execute(sql, params).fetchall()
 
     now = datetime.now(UTC)
-    cutoff = now - timedelta(days=days) if days and days > 0 else None
+    cutoff = now - timedelta(hours=hours) if hours and hours > 0 else None
 
     items = []
     for r in rows:
@@ -441,7 +448,18 @@ def run_generation_cycle() -> dict[str, int]:
     added = 0
     scanned = 0
 
-    for source in config["sources"]:
+    priority_categories = {
+        "nba": 0,
+        "israel-football": 1,
+        "world-football": 2,
+        "israel-sports": 3,
+    }
+    sources = sorted(
+        config["sources"],
+        key=lambda s: (priority_categories.get(str(s.get("category", "")).strip(), 100), str(s.get("name", ""))),
+    )
+
+    for source in sources:
         articles = scan_feed(source, max_items)
         scanned += len(articles)
 
@@ -548,13 +566,17 @@ def create_app() -> Flask:
         scheduler.start()
 
         if config.get("run_first_cycle_on_start", True):
-            safe_cycle()
+            # Run first sync in background so app can start serving immediately.
+            threading.Thread(target=safe_cycle, daemon=True).start()
 
     @app.route("/")
     def index() -> Any:
-        days_param = request.args.get("days", "").strip()
-        days = int(days_param) if days_param.isdigit() and int(days_param) > 0 else None
-        items = get_news(limit=120, days=days)
+        hours_param = request.args.get("hours", "").strip()
+        if hours_param.isdigit() and int(hours_param) > 0:
+            hours = min(int(hours_param), 24)
+        else:
+            hours = 24
+        items = get_news(limit=120, hours=hours)
         taxonomy = get_taxonomy()
         stats = {"total_items": count_news(), "last_update": items[0]["created_at"] if items else None}
         return render_template("index.html", items=items, taxonomy=taxonomy, stats=stats)
@@ -563,10 +585,13 @@ def create_app() -> Flask:
     def api_news() -> Any:
         category = request.args.get("category")
         style = request.args.get("style")
-        days_param = request.args.get("days", "").strip()
-        days = int(days_param) if days_param.isdigit() and int(days_param) > 0 else None
+        hours_param = request.args.get("hours", "").strip()
+        if hours_param.isdigit() and int(hours_param) > 0:
+            hours = min(int(hours_param), 24)
+        else:
+            hours = 24
         limit = int(request.args.get("limit", "50"))
-        items = get_news(limit=limit, category=category, style=style, days=days)
+        items = get_news(limit=limit, category=category, style=style, hours=hours)
         return jsonify({"items": items, "count": len(items)})
 
     @app.route("/api/trigger", methods=["POST"])
@@ -586,26 +611,6 @@ app = create_app()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
