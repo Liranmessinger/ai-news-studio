@@ -1,38 +1,123 @@
 ﻿{
   "output_dir": "output",
-  "max_items_per_source": 4,
+  "max_items_per_source": 3,
   "timeout_seconds": 30,
   "scheduler_interval_minutes": 15,
   "run_first_cycle_on_start": true,
   "default_style": "breaking",
   "source_style_map": {
     "Calcalist": "finance",
-    "Reuters World": "dramatic"
+    "Reuters Business": "finance",
+    "Reuters Technology": "tech",
+    "BBC Technology": "tech",
+    "Google News Israel Security": "dramatic"
   },
   "category_style_map": {
+    "israel-economy": "finance",
+    "world-economy": "finance",
+    "world-tech": "tech",
     "tech": "tech",
-    "finance": "finance"
+    "world-politics": "dramatic",
+    "israel-security": "dramatic",
+    "culture": "clean",
+    "sports": "clean",
+    "israel-sports": "clean"
   },
   "sources": [
     {
       "name": "Rotter",
       "url": "https://rotter.net/rss/rotternews.xml",
-      "category": "israel"
+      "category": "israel-general"
     },
     {
       "name": "Ynet",
       "url": "https://www.ynet.co.il/Integration/StoryRss2.xml",
-      "category": "israel"
+      "category": "israel-general"
     },
     {
       "name": "Calcalist",
       "url": "https://www.calcalist.co.il/GeneralRSS/0,16335,L-8,00.xml",
-      "category": "finance"
+      "category": "israel-economy"
+    },
+    {
+      "name": "Google News Israel Politics",
+      "url": "https://news.google.com/rss/search?q=%D7%A4%D7%95%D7%9C%D7%99%D7%98%D7%99%D7%A7%D7%94+%D7%99%D7%A9%D7%A8%D7%90%D7%9C&hl=he&gl=IL&ceid=IL:he",
+      "category": "israel-politics"
+    },
+    {
+      "name": "Google News Israel Security",
+      "url": "https://news.google.com/rss/search?q=%D7%91%D7%99%D7%98%D7%97%D7%95%D7%9F+%D7%99%D7%A9%D7%A8%D7%90%D7%9C&hl=he&gl=IL&ceid=IL:he",
+      "category": "israel-security"
+    },
+    {
+      "name": "Google News Israel Economy",
+      "url": "https://news.google.com/rss/search?q=%D7%9B%D7%9C%D7%9B%D7%9C%D7%94+%D7%99%D7%A9%D7%A8%D7%90%D7%9C&hl=he&gl=IL&ceid=IL:he",
+      "category": "israel-economy"
+    },
+    {
+      "name": "Google News Israel Sports",
+      "url": "https://news.google.com/rss/search?q=%D7%A1%D7%A4%D7%95%D7%A8%D7%98+%D7%99%D7%A9%D7%A8%D7%90%D7%9C&hl=he&gl=IL&ceid=IL:he",
+      "category": "israel-sports"
     },
     {
       "name": "Reuters World",
       "url": "https://feeds.reuters.com/Reuters/worldNews",
-      "category": "world"
+      "category": "world-politics"
+    },
+    {
+      "name": "Reuters Business",
+      "url": "https://feeds.reuters.com/reuters/businessNews",
+      "category": "world-economy"
+    },
+    {
+      "name": "Reuters Technology",
+      "url": "https://feeds.reuters.com/reuters/technologyNews",
+      "category": "world-tech"
+    },
+    {
+      "name": "Reuters Sports",
+      "url": "https://feeds.reuters.com/reuters/sportsNews",
+      "category": "sports"
+    },
+    {
+      "name": "BBC World",
+      "url": "http://feeds.bbci.co.uk/news/world/rss.xml",
+      "category": "world-general"
+    },
+    {
+      "name": "BBC Technology",
+      "url": "http://feeds.bbci.co.uk/news/technology/rss.xml",
+      "category": "world-tech"
+    },
+    {
+      "name": "BBC Science",
+      "url": "http://feeds.bbci.co.uk/news/science_and_environment/rss.xml",
+      "category": "science"
+    },
+    {
+      "name": "BBC Sport",
+      "url": "http://feeds.bbci.co.uk/sport/rss.xml?edition=uk",
+      "category": "sports"
+    },
+    {
+      "name": "Google News Health",
+      "url": "https://news.google.com/rss/search?q=global+health+news&hl=en-US&gl=US&ceid=US:en",
+      "category": "health"
+    },
+    {
+      "name": "Google News Climate",
+      "url": "https://news.google.com/rss/search?q=climate+change+news&hl=en-US&gl=US&ceid=US:en",
+      "category": "climate"
+    },
+    {
+      "name": "Google News Culture",
+      "url": "https://news.google.com/rss/search?q=global+culture+news&hl=en-US&gl=US&ceid=US:en",
+      "category": "culture"
+    },
+    {
+      "name": "Google News Crypto",
+      "url": "https://news.google.com/rss/search?q=crypto+news&hl=en-US&gl=US&ceid=US:en",
+      "category": "crypto"
     }
   ],
   "styles": {
@@ -43,17 +128,17 @@
     "clean": "Clean modern newspaper cover style, clear hierarchy, neutral colors, highly readable layout."
   },
   "summarization": {
-    "mode": "extractive",
-    "endpoint": "",
-    "api_key_env": "SUMMARY_API_KEY",
-    "model": ""
+    "mode": "llm",
+    "endpoint": "https://api.openai.com/v1/chat/completions",
+    "api_key_env": "OPENAI_API_KEY",
+    "model": "gpt-4o-mini"
   },
   "image": {
     "provider": "openai",
     "model": "gpt-image-1",
-    "size": "1536x1024",
+    "size": "1024x1024",
     "quality": "medium",
     "endpoint": "https://api.openai.com/v1/images/generations",
-    "api_key_env": "IMAGE_API_KEY"
+    "api_key_env": "OPENAI_API_KEY"
   }
 }

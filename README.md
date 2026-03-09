@@ -24,9 +24,9 @@ pip install -r requirements.txt
 ```
 
 ## הגדרת API לתמונות (OpenAI Images)
-1. הגדר `IMAGE_API_KEY`:
+1. הגדר `OPENAI_API_KEY`:
 ```powershell
-$env:IMAGE_API_KEY = "YOUR_KEY"
+$env:OPENAI_API_KEY = "YOUR_KEY"
 ```
 2. ב־`config.json`, הגדר `image.endpoint` לכתובת ה־API שלך.
 
@@ -66,5 +66,6 @@ docker run -p 8000:8000 --name ai-news-studio ai-news-studio
 ```
 
 > ב־production מומלץ למפות volume כדי לשמור `news.db` ו־`output` גם אחרי restart.
+
 
 

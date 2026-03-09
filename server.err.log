@@ -1,27 +1,26 @@
-2026-03-09 18:32:29,509 INFO Adding job tentatively -- it will be properly scheduled when the scheduler starts
-2026-03-09 18:32:29,515 INFO Added job "safe_cycle" to job store "default"
-2026-03-09 18:32:29,515 INFO Scheduler started
-2026-03-09 18:32:34,632 INFO Cycle complete. scanned=8 added=0
-2026-03-09 18:32:34,656 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+2026-03-09 20:23:18,032 INFO Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-03-09 20:23:18,040 INFO Added job "safe_cycle" to job store "default"
+2026-03-09 20:23:18,041 INFO Scheduler started
+2026-03-09 20:23:27,360 INFO Cycle complete. scanned=42 added=0
+2026-03-09 20:23:27,393 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
  * Running on all addresses (0.0.0.0)
  * Running on http://127.0.0.1:8000
  * Running on http://192.168.1.131:8000
-2026-03-09 18:32:34,657 INFO [33mPress CTRL+C to quit[0m
-2026-03-09 18:32:34,659 INFO  * Restarting with stat
-2026-03-09 18:32:35,619 INFO Adding job tentatively -- it will be properly scheduled when the scheduler starts
-2026-03-09 18:32:35,622 INFO Added job "safe_cycle" to job store "default"
-2026-03-09 18:32:35,623 INFO Scheduler started
-2026-03-09 18:32:47,231 INFO Cycle complete. scanned=8 added=0
-2026-03-09 18:32:47,248 WARNING  * Debugger is active!
-2026-03-09 18:32:47,256 INFO  * Debugger PIN: 506-488-244
-2026-03-09 18:42:14,901 INFO  * Detected change in 'C:\\Users\\cetb\\Documents\\AI News\\src\\news_image_pipeline.py', reloading
-2026-03-09 18:42:14,979 INFO  * Restarting with stat
-Traceback (most recent call last):
-  File "C:\Users\cetb\Documents\AI News\src\app.py", line 12, in <module>
-    from news_image_pipeline import (
-    ...<6 lines>...
-    )
-  File "C:\Users\cetb\Documents\AI News\src\news_image_pipeline.py", line 49
-    config["image"].setdefault("api_key_env", "IMAGE_API_KEY")`n    config["image"].setdefault("provider", "generic")`n    config["image"].setdefault("quality", "medium")
-                                                              ^
-SyntaxError: invalid syntax
+2026-03-09 20:23:27,393 INFO [33mPress CTRL+C to quit[0m
+2026-03-09 20:23:27,395 INFO  * Restarting with stat
+2026-03-09 20:23:28,092 INFO Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-03-09 20:23:28,097 INFO Added job "safe_cycle" to job store "default"
+2026-03-09 20:23:28,097 INFO Scheduler started
+2026-03-09 20:23:36,805 INFO Cycle complete. scanned=42 added=0
+2026-03-09 20:23:36,833 WARNING  * Debugger is active!
+2026-03-09 20:23:36,838 INFO  * Debugger PIN: 506-488-244
+2026-03-09 20:23:36,885 INFO 127.0.0.1 - - [09/Mar/2026 20:23:36] "GET /api/news?limit=3 HTTP/1.1" 200 -
+2026-03-09 20:23:56,385 INFO 127.0.0.1 - - [09/Mar/2026 20:23:56] "GET / HTTP/1.1" 200 -
+2026-03-09 20:23:56,481 INFO 127.0.0.1 - - [09/Mar/2026 20:23:56] "[36mGET /static/site.css HTTP/1.1[0m" 304 -
+2026-03-09 20:25:56,558 INFO 127.0.0.1 - - [09/Mar/2026 20:25:56] "GET / HTTP/1.1" 200 -
+2026-03-09 20:25:56,593 INFO 127.0.0.1 - - [09/Mar/2026 20:25:56] "[36mGET /static/site.css HTTP/1.1[0m" 304 -
+2026-03-09 20:25:58,510 INFO  * Detected change in 'C:\\Users\\cetb\\Documents\\AI News\\src\\app.py', reloading
+2026-03-09 20:25:58,578 INFO  * Restarting with stat
+2026-03-09 20:25:59,304 INFO Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-03-09 20:25:59,309 INFO Added job "safe_cycle" to job store "default"
+2026-03-09 20:25:59,310 INFO Scheduler started

@@ -6,90 +6,201 @@
   <title>AI News Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;500;800&family=Rubik+Glitch&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;500;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}" />
 </head>
-<body>
-  <div class="bg-glow"></div>
-  <header class="hero">
-    <div>
-      <p class="eyebrow">AI NEWS PIPELINE</p>
-      <h1>סטודיו ידיעות חזותיות</h1>
-      <p class="subtitle">האתר מציג אוטומטית את כל מה שמנוע הרקע מייצר: כותרות, תקצירים ותמונות.</p>
+<body data-theme="ocean">
+  <div class="mesh"></div>
+
+  <header class="topbar">
+    <div class="theme-row" id="themeRow">
+      <button class="theme-chip active" data-theme="ocean">Ocean</button>
+      <button class="theme-chip" data-theme="sunset">Sunset</button>
+      <button class="theme-chip" data-theme="mint">Mint</button>
+      <button class="theme-chip" data-theme="mono">Mono</button>
     </div>
+
     <div class="stats">
-      <div class="stat-box">
-        <span>סה"כ ידיעות</span>
-        <strong>{{ stats.total_items }}</strong>
-      </div>
-      <div class="stat-box">
-        <span>עדכון אחרון</span>
-        <strong>{{ stats.last_update or 'טרם עודכן' }}</strong>
-      </div>
+      <div class="stat"><span>סה"כ</span><strong>{{ stats.total_items }}</strong></div>
+      <div class="stat"><span>עדכון אחרון</span><strong>{{ stats.last_update or '—' }}</strong></div>
     </div>
   </header>
 
-  <section class="filters">
-    <form method="get">
-      <label>קטגוריה</label>
-      <select name="category">
-        <option value="">הכל</option>
-        {% for category in taxonomy.categories %}
-          <option value="{{ category }}" {% if selected_category == category %}selected{% endif %}>{{ category }}</option>
-        {% endfor %}
-      </select>
+  <section class="content-shell">
+    <section class="quick-filters">
+      <div class="filter-row" id="daysRow">
+        <button class="chip active" data-filter-type="days" data-value="">כל הזמן</button>
+        <button class="chip" data-filter-type="days" data-value="1">היום</button>
+        <button class="chip" data-filter-type="days" data-value="3">3 ימים</button>
+        <button class="chip" data-filter-type="days" data-value="7">7 ימים</button>
+        <button class="chip" data-filter-type="days" data-value="30">30 ימים</button>
+      </div>
 
-      <label>סגנון</label>
-      <select name="style">
-        <option value="">הכל</option>
-        {% for style in taxonomy.styles %}
-          <option value="{{ style }}" {% if selected_style == style %}selected{% endif %}>{{ style }}</option>
+      <div class="filter-row" id="categoryRow">
+        <button class="chip active" data-filter-type="category" data-value="">הכל</button>
+        {% for c in taxonomy.categories %}
+        <button class="chip" data-filter-type="category" data-value="{{ c.value }}">{{ c.label }}</button>
         {% endfor %}
-      </select>
+      </div>
 
-      <button type="submit">סינון</button>
-      <a class="ghost-btn" href="/">ניקוי</a>
-    </form>
+      <div class="filter-row" id="styleRow">
+        <button class="chip active" data-filter-type="style" data-value="">כל הסגנונות</button>
+        {% for s in taxonomy.styles %}
+        <button class="chip" data-filter-type="style" data-value="{{ s.value }}">{{ s.label }}</button>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="workspace">
+      <aside class="headline-rail-panel">
+        <div class="rail-head">כותרות רצות (חדש → ישן)</div>
+        <div class="headline-rail" id="headlineRail">
+          <div class="headline-list" id="headlineListA">
+            {% for item in items %}
+            <a class="headline-item" href="{{ item.link if item.link else '#' }}" {% if item.link %}target="_blank" rel="noopener"{% endif %}>
+              <span class="dot"></span>
+              <span>{{ item.title }}</span>
+            </a>
+            {% endfor %}
+          </div>
+          <div class="headline-list" id="headlineListB" aria-hidden="true">
+            {% for item in items %}
+            <a class="headline-item" href="{{ item.link if item.link else '#' }}" {% if item.link %}target="_blank" rel="noopener"{% endif %}>
+              <span class="dot"></span>
+              <span>{{ item.title }}</span>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+      </aside>
+
+      <main class="feed" id="newsFeed">
+        {% for item in items %}
+        <article class="card" data-category="{{ item.category }}" data-style="{{ item.style_name }}" data-date="{{ item.published_at or item.created_at }}">
+          <div class="meta">
+            <span class="pill category">{{ item.category_label }}</span>
+            <span class="pill style">{{ item.style_label }}</span>
+            {% if item.model_name %}<span class="pill model">{{ item.model_name }}</span>{% endif %}
+          </div>
+          <h2>{{ item.title }}</h2>
+          <p>{{ item.summary }}</p>
+          {% if item.image_path %}
+          <a href="/files/{{ item.image_path }}" target="_blank" rel="noopener">
+            <img src="/files/{{ item.image_path }}" alt="תמונת ידיעה" loading="lazy" />
+          </a>
+          {% else %}
+          <div class="no-image">נוצר פרומפט בלבד (אין endpoint תקין כרגע)</div>
+          {% endif %}
+          <footer>
+            <small>{{ item.source_name }}</small>
+            <small>{{ item.published_at or item.created_at }}</small>
+          </footer>
+          <div class="links">
+            {% if item.link %}<a href="{{ item.link }}" target="_blank" rel="noopener">לכתבה</a>{% endif %}
+            {% if item.prompt_path %}<a href="/files/{{ item.prompt_path }}" target="_blank" rel="noopener">לפרומפט</a>{% endif %}
+          </div>
+        </article>
+        {% endfor %}
+      </main>
+    </section>
   </section>
 
-  <main class="grid">
-    {% for item in items %}
-    <article class="card">
-      <div class="meta">
-        <span class="pill">{{ item.style_name }}</span>
-        <span class="pill muted">{{ item.category }}</span>
-      </div>
-      <h2>{{ item.title }}</h2>
-      <p>{{ item.summary }}</p>
-      {% if item.image_path %}
-      <a href="/files/{{ item.image_path }}" target="_blank" rel="noopener">
-        <img src="/files/{{ item.image_path }}" alt="תמונת ידיעה" loading="lazy" />
-      </a>
-      {% else %}
-      <div class="no-image">נוצר פרומפט בלבד (אין endpoint לתמונות כרגע)</div>
-      {% endif %}
-      <footer>
-        <small>{{ item.source_name }}</small>
-        <small>{{ item.published_at or item.created_at }}</small>
-      </footer>
-      <div class="links">
-        {% if item.link %}<a href="{{ item.link }}" target="_blank" rel="noopener">לכתבה</a>{% endif %}
-        {% if item.prompt_path %}
-        <a href="/files/{{ item.prompt_path }}" target="_blank" rel="noopener">לפרומפט</a>
-        {% endif %}
-      </div>
-    </article>
-    {% endfor %}
-  </main>
-
   <script>
+    const params = new URLSearchParams(location.search);
+    const state = {
+      category: params.get("category") || "",
+      style: params.get("style") || "",
+      days: params.get("days") || "",
+      theme: localStorage.getItem("news_theme") || "ocean",
+    };
+
+    function parseDate(value) {
+      if (!value) return null;
+      const d = new Date(value);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    function applyFilter() {
+      const now = new Date();
+      const daysNum = parseInt(state.days || "0", 10);
+
+      document.querySelectorAll(".card").forEach(card => {
+        const okCategory = !state.category || card.dataset.category === state.category;
+        const okStyle = !state.style || card.dataset.style === state.style;
+
+        let okDays = true;
+        if (daysNum > 0) {
+          const d = parseDate(card.dataset.date || "");
+          if (!d) {
+            okDays = false;
+          } else {
+            const diffMs = now - d;
+            okDays = diffMs >= 0 && diffMs <= daysNum * 24 * 60 * 60 * 1000;
+          }
+        }
+
+        card.style.display = okCategory && okStyle && okDays ? "" : "none";
+      });
+
+      document.querySelectorAll(".chip[data-filter-type]").forEach(chip => {
+        const t = chip.dataset.filterType;
+        const v = chip.dataset.value || "";
+        chip.classList.toggle("active", state[t] === v);
+      });
+
+      const qs = new URLSearchParams();
+      if (state.category) qs.set("category", state.category);
+      if (state.style) qs.set("style", state.style);
+      if (state.days) qs.set("days", state.days);
+      history.replaceState({}, "", qs.toString() ? `?${qs.toString()}` : location.pathname);
+    }
+
+    function applyTheme() {
+      document.body.setAttribute("data-theme", state.theme);
+      document.querySelectorAll(".theme-chip").forEach(chip => {
+        chip.classList.toggle("active", chip.dataset.theme === state.theme);
+      });
+      localStorage.setItem("news_theme", state.theme);
+    }
+
+    document.querySelectorAll(".chip[data-filter-type]").forEach(chip => {
+      chip.addEventListener("click", () => {
+        const type = chip.dataset.filterType;
+        state[type] = chip.dataset.value || "";
+        applyFilter();
+      });
+    });
+
+    document.querySelectorAll(".theme-chip").forEach(chip => {
+      chip.addEventListener("click", () => {
+        state.theme = chip.dataset.theme;
+        applyTheme();
+      });
+    });
+
+    applyTheme();
+    applyFilter();
+
+    const rail = document.getElementById("headlineRail");
+    const railA = document.getElementById("headlineListA");
+    let paused = false;
+
+    if (rail && railA) {
+      rail.addEventListener("mouseenter", () => { paused = true; });
+      rail.addEventListener("mouseleave", () => { paused = false; });
+
+      setInterval(() => {
+        if (paused) return;
+        rail.scrollTop += 1;
+        if (rail.scrollTop >= railA.scrollHeight) {
+          rail.scrollTop = 0;
+        }
+      }, 45);
+    }
+
     setInterval(() => {
-      if (!document.hidden) {
-        window.location.reload();
-      }
-    }, 90000);
+      if (!document.hidden) location.reload();
+    }, 120000);
   </script>
 </body>
 </html>
-
-

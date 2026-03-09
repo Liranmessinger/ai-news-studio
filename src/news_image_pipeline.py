@@ -1,6 +1,7 @@
 ﻿import argparse
 import base64
 import json
+import logging
 import os
 import re
 from dataclasses import dataclass
@@ -12,6 +13,8 @@ import feedparser
 import httpx
 from bs4 import BeautifulSoup
 from dateutil import parser as date_parser
+
+logger = logging.getLogger("news_image_pipeline")
 
 
 DEFAULT_STYLES = {
@@ -47,16 +50,16 @@ def load_config(config_path: Path) -> dict[str, Any]:
     config.setdefault("image", {})
     config["image"].setdefault("provider", "generic")
     config["image"].setdefault("model", "nano-banana-2")
-    config["image"].setdefault("size", "1536x1024")
+    config["image"].setdefault("size", "1024x1024")
     config["image"].setdefault("quality", "medium")
     config["image"].setdefault("endpoint", "")
     config["image"].setdefault("api_key_env", "OPENAI_API_KEY")
 
     config.setdefault("summarization", {})
-    config["summarization"].setdefault("mode", "extractive")
-    config["summarization"].setdefault("endpoint", "")
-    config["summarization"].setdefault("api_key_env", "SUMMARY_API_KEY")
-    config["summarization"].setdefault("model", "")
+    config["summarization"].setdefault("mode", "llm")
+    config["summarization"].setdefault("endpoint", "https://api.openai.com/v1/chat/completions")
+    config["summarization"].setdefault("api_key_env", "OPENAI_API_KEY")
+    config["summarization"].setdefault("model", "gpt-4o-mini")
     return config
 
 
@@ -107,47 +110,65 @@ def scan_feed(source: dict[str, Any], max_items: int) -> list[Article]:
     return results
 
 
+def _clean_duplicate_summary(summary: str, title: str) -> str:
+    s = (summary or "").strip()
+    t = (title or "").strip()
+    if not s:
+        return "אין תקציר זמין כרגע."
+    if t and s.lower() == t.lower():
+        return "אין תקציר זמין כרגע."
+    if t and t.lower() in s.lower():
+        s = re.sub(re.escape(t), "", s, flags=re.IGNORECASE).strip(" -:|\t")
+    s = re.sub(r"\s+", " ", s).strip()
+    return s or "אין תקציר זמין כרגע."
+
+
 def extractive_summary(article: Article, max_chars: int = 420) -> str:
-    seed = article.content_text or article.title
+    seed = article.content_text.strip()
     if not seed:
-        return "No content available."
+        return "אין תקציר זמין כרגע."
     if len(seed) <= max_chars:
-        return seed
+        return _clean_duplicate_summary(seed, article.title)
     clipped = seed[: max_chars + 1]
     last_punct = max(clipped.rfind("."), clipped.rfind("!"), clipped.rfind("?"))
     if last_punct > 120:
-        return clipped[: last_punct + 1]
-    return clipped[:max_chars].rstrip() + "..."
+        return _clean_duplicate_summary(clipped[: last_punct + 1], article.title)
+    return _clean_duplicate_summary(clipped[:max_chars].rstrip() + "...", article.title)
 
 
 def llm_summary(article: Article, config: dict[str, Any], timeout: int) -> str:
     endpoint = config["summarization"]["endpoint"]
-    api_key = os.getenv(config["summarization"]["api_key_env"], "")
+    api_key = os.getenv(config["summarization"]["api_key_env"], "") or os.getenv("OPENAI_API_KEY", "")
     model = config["summarization"]["model"]
     if not endpoint or not api_key or not model:
         return extractive_summary(article)
 
     prompt = (
-        "Summarize the news item in Hebrew for a visual news poster.\n"
-        "Rules: 1) max 90 words, 2) concrete and factual, 3) include who/what/why if available.\n\n"
-        f"Title: {article.title}\n"
-        f"Body: {article.content_text}\n"
-        f"Category: {article.category}\n"
+        "כתוב תקציר חדשות בעברית ברורה לידיעה, גם אם המקור באנגלית. "
+        "אל תחזור על הכותרת כפי שהיא, ואל תעתיק מילה במילה. "
+        "החזר תקציר תמציתי עם עובדות בלבד, עד 65 מילים.\n\n"
+        f"כותרת מקור: {article.title}\n"
+        f"תוכן מקור: {article.content_text}\n"
+        f"קטגוריה: {article.category}\n"
     )
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": "You are a concise Hebrew news editor."},
+            {"role": "system", "content": "אתה עורך חדשות עברי תמציתי ומדויק."},
             {"role": "user", "content": prompt},
         ],
         "temperature": 0.2,
     }
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
-    with httpx.Client(timeout=timeout) as client:
-        response = client.post(endpoint, headers=headers, json=payload)
-        response.raise_for_status()
-        data = response.json()
+    try:
+        with httpx.Client(timeout=timeout) as client:
+            response = client.post(endpoint, headers=headers, json=payload)
+            response.raise_for_status()
+            data = response.json()
+    except Exception as exc:
+        logger.warning("llm_summary failed (%s), fallback to extractive", exc)
+        return extractive_summary(article)
 
     choice = data.get("choices", [{}])[0]
     message = choice.get("message", {})
@@ -155,7 +176,7 @@ def llm_summary(article: Article, config: dict[str, Any], timeout: int) -> str:
     if isinstance(content, list):
         text_parts = [c.get("text", "") for c in content if isinstance(c, dict)]
         content = " ".join(text_parts).strip()
-    return content.strip() or extractive_summary(article)
+    return _clean_duplicate_summary(content.strip() or extractive_summary(article), article.title)
 
 
 def build_image_prompt(article: Article, summary: str, style_name: str, style_desc: str) -> str:
@@ -198,7 +219,7 @@ def generate_image(
 ) -> Path:
     image_cfg = config["image"]
     endpoint = image_cfg["endpoint"]
-    api_key = os.getenv(image_cfg["api_key_env"], "")
+    api_key = os.getenv(image_cfg["api_key_env"], "") or os.getenv("OPENAI_API_KEY", "") or os.getenv("IMAGE_API_KEY", "")
     model = image_cfg["model"]
     size = image_cfg["size"]
     provider = image_cfg.get("provider", "generic").lower().strip()
@@ -224,9 +245,36 @@ def generate_image(
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
     with httpx.Client(timeout=timeout) as client:
-        response = client.post(endpoint, headers=headers, json=payload)
-        response.raise_for_status()
-        data = response.json()
+        try:
+            response = client.post(endpoint, headers=headers, json=payload)
+            response.raise_for_status()
+            data = response.json()
+        except httpx.HTTPStatusError as exc:
+            body = ""
+            try:
+                body = exc.response.text[:500]
+            except Exception:
+                body = ""
+
+            if provider == "openai":
+                fallback_payload = {
+                    "model": model,
+                    "prompt": prompt,
+                    "size": "1024x1024",
+                }
+                try:
+                    retry = client.post(endpoint, headers=headers, json=fallback_payload)
+                    retry.raise_for_status()
+                    data = retry.json()
+                except Exception:
+                    logger.warning("Image generation failed (%s). Returning prompt file. body=%s", exc, body)
+                    return write_prompt_file(output_dir, article, style_name, prompt, model)
+            else:
+                logger.warning("Image generation failed (%s). Returning prompt file. body=%s", exc, body)
+                return write_prompt_file(output_dir, article, style_name, prompt, model)
+        except Exception as exc:
+            logger.warning("Image generation error (%s). Returning prompt file.", exc)
+            return write_prompt_file(output_dir, article, style_name, prompt, model)
 
         if isinstance(data, dict) and isinstance(data.get("data"), list) and data["data"]:
             first = data["data"][0]
