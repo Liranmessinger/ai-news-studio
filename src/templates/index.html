@@ -66,8 +66,8 @@
       </div>
 
       <div class="filter-row" id="viewRow">
-        <button class="chip active" data-filter-type="view" data-value="grid">כרטיסים</button>
-        <button class="chip" data-filter-type="view" data-value="list">רשימה</button>
+        <button class="chip view-chip active" data-filter-type="view" data-value="grid" title="תצוגת כרטיסים" aria-label="תצוגת כרטיסים"><span class="view-icon view-grid" aria-hidden="true"></span></button>
+        <button class="chip view-chip" data-filter-type="view" data-value="list" title="תצוגת רשימה" aria-label="תצוגת רשימה"><span class="view-icon view-list" aria-hidden="true"></span></button>
       </div>
     </section>
 
@@ -209,21 +209,25 @@
 
       return `
         <article class="card" data-category="${escapeHtml(item.category || "")}" data-style="${escapeHtml(item.style_name || "")}" data-date="${escapeHtml(item.published_at || item.created_at || "")}">
-          <div class="meta">
-            <span class="pill category">${categoryLabel}</span>
-            <span class="pill style">${styleLabel}</span>
-            ${modelName ? `<span class="pill model">${modelName}</span>` : ""}
-          </div>
-          <h2>${title}</h2>
-          <p>${summary}</p>
-          ${imageBlock}
-          <footer>
-            <small>${sourceName}</small>
-            <small>${dateText}</small>
-          </footer>
-          <div class="links">
-            ${link ? `<a href="${escapeHtml(link)}" target="_blank" rel="noopener">לכתבה</a>` : ""}
-            ${promptPath ? `<a href="/files/${escapeHtml(promptPath)}" target="_blank" rel="noopener">לפרומפט</a>` : ""}
+          <div class="list-row">
+            <div class="list-media">${imageBlock}</div>
+            <div class="list-main">
+              <div class="meta">
+                <span class="pill category">${categoryLabel}</span>
+                <span class="pill style">${styleLabel}</span>
+                ${modelName ? `<span class="pill model">${modelName}</span>` : ""}
+              </div>
+              <h2>${title}</h2>
+              <p>${summary}</p>
+              <footer>
+                <small>${sourceName}</small>
+                <small>${dateText}</small>
+              </footer>
+              <div class="links">
+                ${link ? `<a href="${escapeHtml(link)}" target="_blank" rel="noopener">לכתבה</a>` : ""}
+                ${promptPath ? `<a href="/files/${escapeHtml(promptPath)}" target="_blank" rel="noopener">לפרומפט</a>` : ""}
+              </div>
+            </div>
           </div>
         </article>
       `;
@@ -348,6 +352,8 @@
   </script>
 </body>
 </html>
+
+
 
 
 
