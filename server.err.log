@@ -1,0 +1,20 @@
+2026-03-09 17:34:52,993 INFO Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-03-09 17:34:53,000 INFO Added job "safe_cycle" to job store "default"
+2026-03-09 17:34:53,002 INFO Scheduler started
+2026-03-09 17:34:53,860 INFO Cycle complete. scanned=8 added=8
+2026-03-09 17:34:53,951 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.1.131:8000
+2026-03-09 17:34:53,953 INFO [33mPress CTRL+C to quit[0m
+2026-03-09 17:34:53,956 INFO  * Restarting with stat
+2026-03-09 17:34:54,716 INFO Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-03-09 17:34:54,718 INFO Added job "safe_cycle" to job store "default"
+2026-03-09 17:34:54,718 INFO Scheduler started
+2026-03-09 17:34:55,436 INFO Cycle complete. scanned=8 added=0
+2026-03-09 17:34:55,455 WARNING  * Debugger is active!
+2026-03-09 17:34:55,461 INFO  * Debugger PIN: 506-488-244
+2026-03-09 17:35:34,103 INFO 127.0.0.1 - - [09/Mar/2026 17:35:34] "GET / HTTP/1.1" 200 -
+2026-03-09 17:35:34,200 INFO 127.0.0.1 - - [09/Mar/2026 17:35:34] "GET /static/site.css HTTP/1.1" 200 -
+2026-03-09 17:35:34,381 INFO 127.0.0.1 - - [09/Mar/2026 17:35:34] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-03-09 17:36:11,481 INFO 127.0.0.1 - - [09/Mar/2026 17:36:11] "GET /files/output/20260309_153453_breaking_news-item.txt HTTP/1.1" 200 -

@@ -1,0 +1,95 @@
+﻿<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI News Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;500;800&family=Rubik+Glitch&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}" />
+</head>
+<body>
+  <div class="bg-glow"></div>
+  <header class="hero">
+    <div>
+      <p class="eyebrow">AI NEWS PIPELINE</p>
+      <h1>סטודיו ידיעות חזותיות</h1>
+      <p class="subtitle">האתר מציג אוטומטית את כל מה שמנוע הרקע מייצר: כותרות, תקצירים ותמונות.</p>
+    </div>
+    <div class="stats">
+      <div class="stat-box">
+        <span>סה"כ ידיעות</span>
+        <strong>{{ stats.total_items }}</strong>
+      </div>
+      <div class="stat-box">
+        <span>עדכון אחרון</span>
+        <strong>{{ stats.last_update or 'טרם עודכן' }}</strong>
+      </div>
+    </div>
+  </header>
+
+  <section class="filters">
+    <form method="get">
+      <label>קטגוריה</label>
+      <select name="category">
+        <option value="">הכל</option>
+        {% for category in taxonomy.categories %}
+          <option value="{{ category }}" {% if selected_category == category %}selected{% endif %}>{{ category }}</option>
+        {% endfor %}
+      </select>
+
+      <label>סגנון</label>
+      <select name="style">
+        <option value="">הכל</option>
+        {% for style in taxonomy.styles %}
+          <option value="{{ style }}" {% if selected_style == style %}selected{% endif %}>{{ style }}</option>
+        {% endfor %}
+      </select>
+
+      <button type="submit">סינון</button>
+      <a class="ghost-btn" href="/">ניקוי</a>
+    </form>
+  </section>
+
+  <main class="grid">
+    {% for item in items %}
+    <article class="card">
+      <div class="meta">
+        <span class="pill">{{ item.style_name }}</span>
+        <span class="pill muted">{{ item.category }}</span>
+      </div>
+      <h2>{{ item.title }}</h2>
+      <p>{{ item.summary }}</p>
+      {% if item.image_path %}
+      <a href="/files/{{ item.image_path }}" target="_blank" rel="noopener">
+        <img src="/files/{{ item.image_path }}" alt="תמונת ידיעה" loading="lazy" />
+      </a>
+      {% else %}
+      <div class="no-image">נוצר פרומפט בלבד (אין endpoint לתמונות כרגע)</div>
+      {% endif %}
+      <footer>
+        <small>{{ item.source_name }}</small>
+        <small>{{ item.published_at or item.created_at }}</small>
+      </footer>
+      <div class="links">
+        {% if item.link %}<a href="{{ item.link }}" target="_blank" rel="noopener">לכתבה</a>{% endif %}
+        {% if item.prompt_path %}
+        <a href="/files/{{ item.prompt_path }}" target="_blank" rel="noopener">לפרומפט</a>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </main>
+
+  <script>
+    setInterval(() => {
+      if (!document.hidden) {
+        window.location.reload();
+      }
+    }, 90000);
+  </script>
+</body>
+</html>
+
+

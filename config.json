@@ -1,0 +1,57 @@
+﻿{
+  "output_dir": "output",
+  "max_items_per_source": 4,
+  "timeout_seconds": 30,
+  "scheduler_interval_minutes": 15,
+  "run_first_cycle_on_start": true,
+  "default_style": "breaking",
+  "source_style_map": {
+    "Calcalist": "finance",
+    "Reuters World": "dramatic"
+  },
+  "category_style_map": {
+    "tech": "tech",
+    "finance": "finance"
+  },
+  "sources": [
+    {
+      "name": "Rotter",
+      "url": "https://rotter.net/rss/rotternews.xml",
+      "category": "israel"
+    },
+    {
+      "name": "Ynet",
+      "url": "https://www.ynet.co.il/Integration/StoryRss2.xml",
+      "category": "israel"
+    },
+    {
+      "name": "Calcalist",
+      "url": "https://www.calcalist.co.il/GeneralRSS/0,16335,L-8,00.xml",
+      "category": "finance"
+    },
+    {
+      "name": "Reuters World",
+      "url": "https://feeds.reuters.com/Reuters/worldNews",
+      "category": "world"
+    }
+  ],
+  "styles": {
+    "breaking": "Breaking-news editorial poster, sharp typography, urgency, red accents, high contrast, newsroom visuals.",
+    "finance": "Financial-news infographic style, clean grid, market motifs, blue and gold palette, professional tone.",
+    "tech": "Futuristic technology news card, neon accents, UI overlays, modern minimalism, crisp composition.",
+    "dramatic": "Cinematic dramatic news visual, deep shadows, bold headline area, emotional atmosphere.",
+    "clean": "Clean modern newspaper cover style, clear hierarchy, neutral colors, highly readable layout."
+  },
+  "summarization": {
+    "mode": "extractive",
+    "endpoint": "",
+    "api_key_env": "SUMMARY_API_KEY",
+    "model": ""
+  },
+  "image": {
+    "model": "nano-banana-2",
+    "size": "1536x1024",
+    "endpoint": "",
+    "api_key_env": "IMAGE_API_KEY"
+  }
+}

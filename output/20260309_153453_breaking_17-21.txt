@@ -1,0 +1,7 @@
+Create a detailed Hebrew news image in style 'breaking'. Style direction: Breaking-news editorial poster, sharp typography, urgency, red accents, high contrast, newsroom visuals.
+Headline (Hebrew): צבע אדום (17:21): מטולה
+Summary (Hebrew): צבע אדום (17:21): מטולה
+Source badge: Rotter
+Category tag: israel
+Published at: 2026-03-09T17:21:11+02:00
+Layout requirements: large headline area, readable Hebrew typography, subtitle block, small source/date footer, editorial-quality composition, no gibberish text.

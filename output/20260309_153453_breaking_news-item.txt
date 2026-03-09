@@ -1,0 +1,7 @@
+Create a detailed Hebrew news image in style 'breaking'. Style direction: Breaking-news editorial poster, sharp typography, urgency, red accents, high contrast, newsroom visuals.
+Headline (Hebrew): סמ"ר אור דמרי הוא הלוחם השני שנהרג מהירי לעבר הדחפור שחילץ טנק בדרום לבנון
+Summary (Hebrew): בתקרית בליל שבת, הלוחמים היו בדחפור D9 שיצא לחלץ טנק שנתקע במוצב בדרום לבנון, ונהרגו מירי. סמ"ר דמרי ממושב לימן נפל לצד רס"ל מאהר חטאר ממג'דל שמס, לוחם נוסף נפצע קל. אימו כתבה בפוסט: "האור שלנו כבה🖤"
+Source badge: Ynet
+Category tag: israel
+Published at: 2026-03-09T15:00:12+02:00
+Layout requirements: large headline area, readable Hebrew typography, subtitle block, small source/date footer, editorial-quality composition, no gibberish text.
