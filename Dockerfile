@@ -13,4 +13,5 @@ ENV RUN_BACKGROUND_WORKER=1
 
 EXPOSE 8000
 
-CMD ["gunicorn", "--chdir", "src", "--bind", "0.0.0.0:8000", "app:app", "--workers", "1", "--threads", "6", "--timeout", "120"]
+CMD ["sh", "-c", "gunicorn --chdir src --bind 0.0.0.0:${PORT:-8000} app:app --workers 1 --threads 6 --timeout 120"]
+

@@ -100,7 +100,7 @@
           <div class="meta">
             <span class="pill category">{{ item.category_label }}</span>
             <span class="pill style">{{ item.style_label }}</span>
-            {% if item.model_name %}<span class="pill model">{{ item.model_name }}</span>{% endif %}
+            
           </div>
           <h2>{{ item.title }}</h2>
           <p>{{ item.summary }}</p>
@@ -115,7 +115,7 @@
           </a>
           {% endif %}
           {% else %}
-          <div class="no-image">נוצר פרומפט בלבד (אין endpoint תקין כרגע)</div>
+          
           {% endif %}
           <footer>
             <small>{{ item.source_name }}</small>
@@ -198,7 +198,7 @@
       const promptPath = item.prompt_path || "";
       const imagePath = item.image_path || "";
 
-      let imageBlock = '<div class="no-image">נוצר פרומפט בלבד (אין endpoint תקין כרגע)</div>';
+      let imageBlock = '';
       if (imagePath) {
         if (imagePath.startsWith("http")) {
           imageBlock = `<a href="${escapeHtml(imagePath)}" target="_blank" rel="noopener"><img src="${escapeHtml(imagePath)}" alt="תמונת ידיעה" loading="lazy" referrerpolicy="no-referrer" /></a>`;
@@ -215,7 +215,7 @@
               <div class="meta">
                 <span class="pill category">${categoryLabel}</span>
                 <span class="pill style">${styleLabel}</span>
-                ${modelName ? `<span class="pill model">${modelName}</span>` : ""}
+                
               </div>
               <h2>${title}</h2>
               <p>${summary}</p>
@@ -352,6 +352,7 @@
   </script>
 </body>
 </html>
+
 
 
 

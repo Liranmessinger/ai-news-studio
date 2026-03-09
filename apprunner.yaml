@@ -1,0 +1,24 @@
+﻿version: 1.0
+runtime: python3
+build:
+  commands:
+    build:
+      - pip install --upgrade pip
+      - pip install -r requirements.txt
+run:
+  runtime-version: 3.12
+  command: gunicorn --chdir src --bind 0.0.0.0:$PORT app:app --workers 1 --threads 6 --timeout 120
+  network:
+    port: 8000
+    env: PORT
+  env:
+    - name: RUN_BACKGROUND_WORKER
+      value: "1"
+    - name: FLASK_DEBUG
+      value: "0"
+  health-check:
+    path: /
+    interval: 10
+    timeout: 5
+    healthy-threshold: 1
+    unhealthy-threshold: 5
