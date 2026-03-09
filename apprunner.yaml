@@ -8,9 +8,9 @@ build:
       - python3 -m pip install -r requirements.txt
 
 run:
-  command: python3 -m gunicorn --chdir src --bind 0.0.0.0:8000 app:app --workers 1 --threads 6 --timeout 120
+  command: python3 -m gunicorn --chdir src --bind 0.0.0.0:8080 app:app --workers 1 --threads 6 --timeout 120
   network:
-    port: 8000
+    port: 8080
   env:
     - name: RUN_BACKGROUND_WORKER
       value: "1"
