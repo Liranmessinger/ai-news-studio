@@ -3,6 +3,7 @@
   "max_items_per_source": 3,
   "timeout_seconds": 30,
   "scheduler_interval_minutes": 15,
+  "scheduler_interval_seconds": 30,
   "run_first_cycle_on_start": true,
   "default_style": "breaking",
   "source_style_map": {
@@ -142,3 +143,5 @@
     "api_key_env": "OPENAI_API_KEY"
   }
 }
+
+

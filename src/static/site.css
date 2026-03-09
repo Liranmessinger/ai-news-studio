@@ -146,14 +146,74 @@ body {
 }
 
 .topbar {
+  position: relative;
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: flex-start;
   align-items: center;
-  background: linear-gradient(140deg, var(--topbar-a), var(--topbar-b));
+  min-height: 74px;
+  background: linear-gradient(140deg, color-mix(in srgb, var(--topbar-a) 96%, white), color-mix(in srgb, var(--topbar-b) 96%, white));
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
+  border-radius: 18px;
+  padding: 10px 14px;
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.brand-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  font-size: clamp(1rem, 1.35vw, 1.25rem);
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: var(--text);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.theme-menu {
+  position: relative;
+  z-index: 2;
+}
+
+.theme-menu-btn {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.9;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.theme-menu-btn:hover {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+.palette-glyph {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: conic-gradient(#2f80ff 0 24%, #ff6a3d 24% 48%, #39c9a6 48% 72%, #8894aa 72% 100%);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--bg) 75%, white), 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.theme-popover {
+  position: absolute;
+  top: 42px;
+  left: 0;
+  z-index: 12;
+  background: color-mix(in srgb, var(--panel) 96%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
-  border-radius: 16px;
-  padding: 12px;
+  border-radius: 12px;
+  padding: 8px;
+  backdrop-filter: blur(8px);
 }
 
 .theme-row {
@@ -432,15 +492,30 @@ footer {
 
 @media (max-width: 760px) {
   .topbar {
-    flex-direction: column;
-    align-items: flex-start;
+    justify-content: center;
+    min-height: 64px;
+    padding-inline: 12px;
   }
 
-  .stats {
-    width: 100%;
-    flex-direction: column;
+  .brand-title {
+    position: static;
+    transform: none;
+    white-space: normal;
+    text-align: center;
+    padding-inline: 44px;
+    font-size: 0.95rem;
+  }
+
+  .theme-menu {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
   }
 }
+
+
+
 
 
 

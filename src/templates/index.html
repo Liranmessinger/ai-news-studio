@@ -13,27 +13,28 @@
   <div class="mesh"></div>
 
   <header class="topbar">
-    <div class="theme-row" id="themeRow">
-      <button class="theme-chip active" data-theme="ocean" title="אושן" aria-label="אושן">
-        <span class="theme-icon icon-ocean"></span>
-      </button>
-      <button class="theme-chip" data-theme="sunset" title="סאנסט" aria-label="סאנסט">
-        <span class="theme-icon icon-sunset"></span>
-      </button>
-      <button class="theme-chip" data-theme="mint" title="מינט" aria-label="מינט">
-        <span class="theme-icon icon-mint"></span>
-      </button>
-      <button class="theme-chip" data-theme="mono" title="מונו" aria-label="מונו">
-        <span class="theme-icon icon-mono"></span>
-      </button>
-      <button class="theme-chip" data-theme="white" title="לבן" aria-label="לבן">
-        <span class="theme-icon icon-white"></span>
-      </button>
-    </div>
-
-    <div class="stats">
-      <div class="stat"><span>סה"כ</span><strong>{{ stats.total_items }}</strong></div>
-      <div class="stat"><span>עדכון אחרון</span><strong>{{ stats.last_update or '—' }}</strong></div>
+    <h1 class="brand-title">חדשות מסינגר-אתר החדשות של ישראל</h1>
+    <div class="theme-menu" id="themeMenu">
+      <button class="theme-menu-btn" id="themeMenuBtn" title="בחירת צבעים" aria-label="בחירת צבעים"><span class="palette-glyph" aria-hidden="true"></span></button>
+      <div class="theme-popover" id="themePopover" hidden>
+        <div class="theme-row" id="themeRow">
+          <button class="theme-chip active" data-theme="ocean" title="אושן" aria-label="אושן">
+            <span class="theme-icon icon-ocean"></span>
+          </button>
+          <button class="theme-chip" data-theme="sunset" title="סאנסט" aria-label="סאנסט">
+            <span class="theme-icon icon-sunset"></span>
+          </button>
+          <button class="theme-chip" data-theme="mint" title="מינט" aria-label="מינט">
+            <span class="theme-icon icon-mint"></span>
+          </button>
+          <button class="theme-chip" data-theme="mono" title="מונו" aria-label="מונו">
+            <span class="theme-icon icon-mono"></span>
+          </button>
+          <button class="theme-chip" data-theme="white" title="לבן" aria-label="לבן">
+            <span class="theme-icon icon-white"></span>
+          </button>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -192,8 +193,26 @@
       chip.addEventListener("click", () => {
         state.theme = chip.dataset.theme;
         applyTheme();
+        if (themePopover) themePopover.hidden = true;
       });
     });
+
+    const themeMenu = document.getElementById("themeMenu");
+    const themeMenuBtn = document.getElementById("themeMenuBtn");
+    const themePopover = document.getElementById("themePopover");
+
+    if (themeMenuBtn && themePopover) {
+      themeMenuBtn.addEventListener("click", () => {
+        themePopover.hidden = !themePopover.hidden;
+      });
+
+      document.addEventListener("click", (ev) => {
+        if (!themeMenu) return;
+        if (!themeMenu.contains(ev.target)) {
+          themePopover.hidden = true;
+        }
+      });
+    }
 
     applyTheme();
     applyFilter();
@@ -217,9 +236,13 @@
 
     setInterval(() => {
       if (!document.hidden) location.reload();
-    }, 120000);
+    }, 30000);
   </script>
 </body>
 </html>
+
+
+
+
 
 

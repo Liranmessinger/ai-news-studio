@@ -114,6 +114,24 @@ def normalize_text(text: str) -> str:
     return value
 
 
+
+def clean_summary_artifacts(summary: str, title: str, category: str) -> str:
+    s = normalize_text(summary)
+    if not s:
+        return s
+
+    raw = s
+    s = re.sub(r"(^|[.!?]\s+)IL\b\s*[:,-]?\s*", r"\1", s, flags=re.IGNORECASE)
+    s = re.sub(r"\s+", " ", s).strip(" -:|")
+
+    # If the source leaked "IL" in Israel items, surface the Israel flag instead.
+    if category.startswith("israel") and re.search(r"\bIL\b", raw, flags=re.IGNORECASE):
+        if not s.startswith("🇮🇱"):
+            s = f"🇮🇱 {s}".strip()
+
+    if "�" in s:
+        return fallback_subtitle(title, category)
+    return s
 def normalized_for_compare(text: str) -> str:
     value = normalize_text(text).lower()
     value = re.sub(r"[^0-9a-z\u0590-\u05ff ]+", " ", value)
@@ -351,6 +369,11 @@ def get_news(
         item["title"] = normalize_text(item.get("title", ""))
         item["summary"] = normalize_text(item.get("summary", ""))
         item["summary"] = remove_summary_dup(item.get("summary", ""), item.get("title", ""), item.get("category", ""))
+        item["summary"] = clean_summary_artifacts(
+            item.get("summary", ""),
+            item.get("title", ""),
+            item.get("category", ""),
+        )
         item["summary"] = re.sub(r"^דגל ישראל\s*", "", item.get("summary", "")).strip()
         item["title"] = hebrew_title_from_summary(item.get("title", ""), item.get("summary", ""))
         emoji = emoji_for_item(item.get("category", ""), item.get("title", ""), item.get("summary", ""))
@@ -510,11 +533,15 @@ def create_app() -> Flask:
 
     if should_run_scheduler():
         config = load_config(CONFIG_PATH)
+        interval_seconds = int(config.get("scheduler_interval_seconds", 0))
+        if interval_seconds <= 0:
+            interval_seconds = int(config.get("scheduler_interval_minutes", 10)) * 60
+
         scheduler = BackgroundScheduler(timezone="UTC")
         scheduler.add_job(
             safe_cycle,
             "interval",
-            minutes=int(config.get("scheduler_interval_minutes", 10)),
+            seconds=interval_seconds,
             id="news_cycle",
             max_instances=1,
         )
@@ -559,6 +586,10 @@ app = create_app()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
+
+
+
+
 
 
 
