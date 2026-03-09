@@ -54,6 +54,19 @@ body[data-theme="mono"] {
   --accent-2: #d3dae6;
 }
 
+body[data-theme="dark"] {
+  --bg: #06080d;
+  --shell: #0b0f17;
+  --topbar-a: #0d121c;
+  --bg-mid: #090d15;
+  --topbar-b: #0a0e16;
+  --panel: #101725;
+  --line: #1f2b40;
+  --text: #f3f7ff;
+  --muted: #96a8c6;
+  --accent: #3a8bff;
+  --accent-2: #6db4ff;
+}
 body[data-theme="white"] {
   --bg: #eef3fb;
   --shell: #f8fbff;
@@ -252,6 +265,7 @@ body {
 .icon-sunset { background: linear-gradient(145deg, #ff8f4a, #ff4e5d); }
 .icon-mint { background: linear-gradient(145deg, #4ee4b1, #1cbe8d); }
 .icon-mono { background: linear-gradient(145deg, #9aa4b7, #4e5665); }
+.icon-dark { background: linear-gradient(145deg, #0f131c, #2b3a56); }
 .icon-white { background: linear-gradient(145deg, #ffffff, #d6e4f5); }
 
 .stats {
@@ -536,6 +550,9 @@ footer {
     transform: translateY(-50%);
   }
 }
+
+
+
 
 
 
