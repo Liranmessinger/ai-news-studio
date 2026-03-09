@@ -61,6 +61,11 @@
         <button class="chip" data-filter-type="style" data-value="{{ s.value }}">{{ s.label }}</button>
         {% endfor %}
       </div>
+
+      <div class="filter-row" id="viewRow">
+        <button class="chip active" data-filter-type="view" data-value="grid">כרטיסים</button>
+        <button class="chip" data-filter-type="view" data-value="list">רשימה</button>
+      </div>
     </section>
 
     <section class="workspace">
@@ -240,6 +245,7 @@
   </script>
 </body>
 </html>
+
 
 
 

@@ -179,7 +179,7 @@ def emoji_for_item(category: str, title: str, summary: str) -> str:
     if "crypto" in c or any(k in t for k in ["קריפטו", "ביטקוין", "בלוקצ'יין"]):
         return "🪙"
     if c.startswith("israel"):
-        return "🇮🇱"
+        return "🗞️"
     return "📰"
 
 
@@ -586,6 +586,7 @@ app = create_app()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
+
 
 
 
