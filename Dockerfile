@@ -8,10 +8,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 ENV PYTHONUNBUFFERED=1
-ENV PORT=8000
+ENV PORT=8080
 ENV RUN_BACKGROUND_WORKER=1
 
-EXPOSE 8000
+EXPOSE 8080
 
-CMD ["sh", "-c", "gunicorn --chdir src --bind 0.0.0.0:${PORT:-8000} app:app --workers 1 --threads 6 --timeout 120"]
+CMD ["sh", "-c", "gunicorn --chdir src --bind 0.0.0.0:${PORT:-8080} app:app --workers 1 --threads 6 --timeout 120"]
+
 

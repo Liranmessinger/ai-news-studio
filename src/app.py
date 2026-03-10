@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+import httpx
 from apscheduler.schedulers.background import BackgroundScheduler
 from dateutil import parser as date_parser
 from flask import Flask, jsonify, render_template, request, send_from_directory
@@ -23,11 +24,13 @@ from news_image_pipeline import (
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+STORAGE_DIR = Path(os.getenv("DATA_DIR", str(BASE_DIR))).resolve()
 CONFIG_PATH = BASE_DIR / "config.json"
-DB_PATH = BASE_DIR / "news.db"
+DB_PATH = Path(os.getenv("NEWS_DB_PATH", str(STORAGE_DIR / "news.db"))).resolve()
 
 CATEGORY_LABELS = {
     "israel-general": "ישראל - כללי",
+    
     "israel-politics": "ישראל - פוליטיקה",
     "israel-security": "ישראל - ביטחון",
     "israel-economy": "ישראל - כלכלה",
@@ -58,6 +61,9 @@ STYLE_LABELS = {
 logger = logging.getLogger("ai_news")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
+LIVE_SPORTS_CACHE: dict[str, Any] = {"ts": None, "items": []}
+LIVE_SPORTS_LOCK = threading.Lock()
+
 
 def utc_now_iso() -> str:
     return datetime.now(UTC).isoformat()
@@ -69,6 +75,22 @@ def category_label(value: str) -> str:
 
 def style_label(value: str) -> str:
     return STYLE_LABELS.get(value, value)
+
+
+def resolve_output_dir(config: dict[str, Any]) -> Path:
+    raw = str(os.getenv("OUTPUT_DIR", config.get("output_dir", "output"))).strip()
+    path = Path(raw)
+    if not path.is_absolute():
+        path = STORAGE_DIR / path
+    return path.resolve()
+
+
+def to_storage_relative(path: Path) -> str:
+    resolved = path.resolve()
+    try:
+        return resolved.relative_to(STORAGE_DIR).as_posix()
+    except Exception:
+        return resolved.name
 
 
 def fallback_subtitle(title: str, category: str) -> str:
@@ -439,7 +461,7 @@ def resolve_style_for_article(config: dict[str, Any], article: Any) -> str:
 
 def run_generation_cycle() -> dict[str, int]:
     config = load_config(CONFIG_PATH)
-    output_dir = BASE_DIR / config.get("output_dir", "output")
+    output_dir = resolve_output_dir(config)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     timeout = int(config.get("timeout_seconds", 20))
@@ -473,18 +495,10 @@ def run_generation_cycle() -> dict[str, int]:
             link = article.link or ""
             title = article.title or "ללא כותרת"
             published_at = article.published_at.isoformat() if article.published_at else None
-            source_image_url = getattr(article, "source_image_url", None) or extract_article_page_image(link, min(timeout, 8))
-
             if news_exists(link, style_name, article.source_name, title, published_at):
-                update_missing_image(
-                    link,
-                    style_name,
-                    article.source_name,
-                    title,
-                    published_at,
-                    source_image_url,
-                )
                 continue
+
+            source_image_url = getattr(article, "source_image_url", None) or extract_article_page_image(link, min(timeout, 8))
 
             summary_mode = config["summarization"]["mode"]
             if summary_mode == "llm":
@@ -495,7 +509,7 @@ def run_generation_cycle() -> dict[str, int]:
             prompt = build_image_prompt(article, summary, style_name, style_desc)
             output_path = generate_image(prompt, article, style_name, config, output_dir, timeout)
             suffix = output_path.suffix.lower()
-            rel_path = output_path.relative_to(BASE_DIR).as_posix()
+            rel_path = to_storage_relative(output_path)
             image_path = rel_path if suffix in {".png", ".jpg", ".jpeg", ".webp"} else None
             prompt_path = rel_path if suffix == ".txt" else None
             if not image_path and source_image_url:
@@ -544,9 +558,81 @@ def should_run_scheduler() -> bool:
     return value in {"1", "true", "yes", "on"}
 
 
+def fetch_one_live_scores(limit: int = 20, timeout: int = 12) -> list[dict[str, Any]]:
+    date_key = datetime.now().strftime("%d-%m-%Y")
+    url = f"https://api.one.co.il/json/v6/live/date/{date_key}"
+
+    with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+      data = client.get(url).json()
+
+    leagues = ((data or {}).get("Data") or {}).get("Live", {}).get("Leagues", [])
+    rows: list[dict[str, Any]] = []
+
+    for league in leagues:
+      for match in league.get("Matches", []) or []:
+        home = ((match.get("Home") or {}).get("Name") or {}).get("Main", "")
+        away = ((match.get("Away") or {}).get("Name") or {}).get("Main", "")
+        if not home or not away:
+          continue
+
+        home_score = ((match.get("Home") or {}).get("Score") or {}).get("Match", -1)
+        away_score = ((match.get("Away") or {}).get("Score") or {}).get("Match", -1)
+        state = ((match.get("TextStates") or {}).get("State") or "").strip()
+        minutes = ((match.get("TextStates") or {}).get("MinutesLive") or "").strip()
+        sport_type = match.get("SportType", -1)
+        sport_name = "Soccer" if sport_type == 0 else ("Basketball" if sport_type == 1 else "Sports")
+        is_live = bool(match.get("IsLive"))
+        start_time = match.get("DateStart") or ""
+
+        score_text = "-" if int(home_score) < 0 or int(away_score) < 0 else f"{home_score}:{away_score}"
+        status_parts = [x for x in [state, minutes] if x]
+        status_text = " | ".join(status_parts) if status_parts else ("LIVE" if is_live else "Not started")
+
+        rows.append({
+          "provider": "ONE",
+          "league": league.get("Name", ""),
+          "sport": sport_name,
+          "home": home,
+          "away": away,
+          "score": score_text,
+          "status": status_text,
+          "is_live": is_live,
+          "start_time": start_time,
+          "url": ((match.get("URL") or {}).get("PC") or "https://www.one.co.il/Live/#.match"),
+        })
+
+    rows.sort(key=lambda r: (0 if r.get("is_live") else 1, r.get("start_time") or ""))
+    return rows[:limit]
+
+
+def get_live_sports(limit: int = 20) -> list[dict[str, Any]]:
+    now = datetime.now(UTC)
+    with LIVE_SPORTS_LOCK:
+      ts = LIVE_SPORTS_CACHE.get("ts")
+      cached = LIVE_SPORTS_CACHE.get("items", [])
+      if isinstance(ts, datetime) and (now - ts) < timedelta(seconds=20):
+        return cached[:limit]
+
+    items: list[dict[str, Any]] = []
+    try:
+      items = fetch_one_live_scores(limit=limit)
+    except Exception as exc:
+      logger.warning("live sports fetch failed from ONE (%s)", exc)
+
+    with LIVE_SPORTS_LOCK:
+      if items:
+        LIVE_SPORTS_CACHE["items"] = items
+        LIVE_SPORTS_CACHE["ts"] = now
+      elif LIVE_SPORTS_CACHE.get("items"):
+        items = LIVE_SPORTS_CACHE["items"]
+
+    return items[:limit]
+
+
 def create_app() -> Flask:
     app = Flask(__name__, template_folder="templates", static_folder="static")
 
+    STORAGE_DIR.mkdir(parents=True, exist_ok=True)
     init_db()
 
     if should_run_scheduler():
@@ -594,6 +680,13 @@ def create_app() -> Flask:
         items = get_news(limit=limit, category=category, style=style, hours=hours)
         return jsonify({"items": items, "count": len(items)})
 
+    @app.route("/api/live-sports")
+    def api_live_sports() -> Any:
+        limit = int(request.args.get("limit", "16"))
+        limit = max(1, min(limit, 40))
+        items = get_live_sports(limit=limit)
+        return jsonify({"items": items, "count": len(items), "provider": "ONE"})
+
     @app.route("/api/trigger", methods=["POST"])
     def trigger() -> Any:
         safe_cycle()
@@ -601,7 +694,7 @@ def create_app() -> Flask:
 
     @app.route("/files/<path:filename>")
     def files(filename: str) -> Any:
-        return send_from_directory(BASE_DIR, filename)
+        return send_from_directory(STORAGE_DIR, filename)
 
     return app
 
@@ -610,7 +703,17 @@ app = create_app()
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    debug_mode = os.getenv("FLASK_DEBUG", "0").strip().lower() in {"1", "true", "yes", "on"}
+    app.run(host="0.0.0.0", port=8080, debug=debug_mode, use_reloader=False)
+
+
+
+
+
+
+
+
+
 
 
 

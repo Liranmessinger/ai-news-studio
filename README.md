@@ -37,7 +37,7 @@ $env:OPENAI_API_KEY = "YOUR_KEY"
 python src/app.py
 ```
 האתר יעלה ב:
-- `http://localhost:8000`
+- `http://localhost:8080`
 
 ### מה קורה ברקע
 - כל `scheduler_interval_minutes` (ברירת מחדל 15) המנוע סורק פידים.
@@ -62,7 +62,7 @@ python src/app.py
 ### Build + run מקומי עם Docker
 ```powershell
 docker build -t ai-news-studio .
-docker run -p 8000:8000 --name ai-news-studio ai-news-studio
+docker run -p 8080:8080 --name ai-news-studio ai-news-studio
 ```
 
 > ב־production מומלץ למפות volume כדי לשמור `news.db` ו־`output` גם אחרי restart.
@@ -94,5 +94,22 @@ docker run -p 8000:8000 --name ai-news-studio ai-news-studio
 ## Docker ?????
 ```powershell
 docker build -t ai-news-studio .
-docker run -p 8000:8000 --name ai-news-studio ai-news-studio
+docker run -p 8080:8080 --name ai-news-studio ai-news-studio
 ```
+
+## פריסה ל-Railway
+1. דוחפים את הקוד ל-GitHub.
+2. ב-Railway בוחרים `New Project` -> `Deploy from GitHub repo` ובוחרים את `ai-news-studio`.
+3. מוסיפים Volume ומחברים אותו לנתיב `/data`.
+4. ב-Variables מגדירים:
+   - `OPENAI_API_KEY=...`
+   - `RUN_BACKGROUND_WORKER=1`
+   - `DATA_DIR=/data`
+   - `NEWS_DB_PATH=/data/news.db`
+   - `OUTPUT_DIR=/data/output`
+   - `FLASK_DEBUG=0`
+5. Deploy. השרת יעלה אוטומטית עם `gunicorn` מתוך `Procfile`.
+
+### חשוב
+- בלי Volume, קבצי `news.db` והתמונות יימחקו בריסטרט.
+- אם עושים Scale ליותר מ-Instance אחד, להפעיל worker רק ב-instance אחד (`RUN_BACKGROUND_WORKER=1`) ובאחרים `0`.

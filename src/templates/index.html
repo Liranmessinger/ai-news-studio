@@ -69,27 +69,44 @@
         <button class="chip view-chip active" data-filter-type="view" data-value="grid" title="תצוגת כרטיסים" aria-label="תצוגת כרטיסים"><span class="view-icon view-grid" aria-hidden="true"></span></button>
         <button class="chip view-chip" data-filter-type="view" data-value="list" title="תצוגת רשימה" aria-label="תצוגת רשימה"><span class="view-icon view-list" aria-hidden="true"></span></button>
       </div>
+
+      <div class="breaking-strip" id="breakingStrip" hidden>
+        <div class="breaking-badge">מבזקים</div>
+        <div class="breaking-marquee">
+          <div class="breaking-track" id="breakingTrack"></div>
+        </div>
+      </div>
     </section>
 
     <section class="workspace">
-      <aside class="headline-rail-panel">
-        <div class="rail-head">כותרות רצות (חדש → ישן)</div>
-        <div class="headline-rail" id="headlineRail">
-          <div class="headline-list" id="headlineListA">
-            {% for item in items %}
-            <a class="headline-item" href="{{ item.link if item.link else '#' }}" {% if item.link %}target="_blank" rel="noopener"{% endif %}>
-              <span class="dot"></span>
-              <span>{{ item.title }}</span>
-            </a>
-            {% endfor %}
+      <aside class="sidebar-stack">
+        <div class="headline-rail-panel">
+          <div class="rail-head">כותרות רצות (חדש → ישן)</div>
+          <div class="headline-rail" id="headlineRail">
+            <div class="headline-list" id="headlineListA">
+              {% for item in items %}
+              <a class="headline-item" href="{{ item.link if item.link else '#' }}" {% if item.link %}target="_blank" rel="noopener"{% endif %}>
+                <span class="dot"></span>
+                <span>{{ item.title }}</span>
+              </a>
+              {% endfor %}
+            </div>
+            <div class="headline-list" id="headlineListB" aria-hidden="true">
+              {% for item in items %}
+              <a class="headline-item" href="{{ item.link if item.link else '#' }}" {% if item.link %}target="_blank" rel="noopener"{% endif %}>
+                <span class="dot"></span>
+                <span>{{ item.title }}</span>
+              </a>
+              {% endfor %}
+            </div>
           </div>
-          <div class="headline-list" id="headlineListB" aria-hidden="true">
-            {% for item in items %}
-            <a class="headline-item" href="{{ item.link if item.link else '#' }}" {% if item.link %}target="_blank" rel="noopener"{% endif %}>
-              <span class="dot"></span>
-              <span>{{ item.title }}</span>
-            </a>
-            {% endfor %}
+        </div>
+
+        <div class="security-panel sports-side-panel" id="sportsSidePanel">
+          <div class="rail-head sports-side-head">עדכוני ספורט</div>
+          <div class="security-rail" id="sportsRail">
+            <div class="security-list" id="sportsListA"></div>
+            <div class="security-list" id="sportsListB" aria-hidden="true"></div>
           </div>
         </div>
       </aside>
@@ -129,9 +146,7 @@
         {% endfor %}
       </main>
     </section>
-  </section>
-
-    <script>
+  </section>  <script>
     const params = new URLSearchParams(location.search);
     const state = {
       category: params.get("category") || "",
@@ -143,6 +158,15 @@
 
     let allItems = {{ items|tojson }};
     let lastSignature = "";
+    let sportsItems = [];
+    let sportsSignature = "";
+    let newsRefreshInFlight = false;
+    let sportsRefreshInFlight = false;
+    let breakingSig = "";
+    let breakingOffset = 0;
+    let breakingPaused = false;
+    let breakingRaf = 0;
+    let breakingLastTs = 0;
 
     function parseDate(value) {
       if (!value) return null;
@@ -161,6 +185,161 @@
 
     function itemSignature(items) {
       return items.map(i => `${i.id || ""}|${i.created_at || ""}|${i.image_path || ""}|${i.summary || ""}`).join(";");
+    }
+
+    const SECURITY_TERMS = [
+      "red alert", "siren", "rocket", "missile", "intercept", "attack", "terror", "earthquake",
+      "\u05e6\u05d1\u05e2 \u05d0\u05d3\u05d5\u05dd", "\u05d0\u05d6\u05e2\u05e7\u05d4", "\u05d4\u05ea\u05e8\u05e2\u05d4",
+      "\u05e8\u05e2\u05d9\u05d3\u05ea \u05d0\u05d3\u05de\u05d4", "\u05d1\u05d9\u05d8\u05d7", "\u05d9\u05e8\u05d9", "\u05e6\u05d4\"\u05dc"
+    ];
+
+    function formatTickerTime(value) {
+      const d = parseDate(value);
+      if (!d) return "--:--";
+      return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", hour12: false });
+    }
+
+    function isSecurityItem(item) {
+      const category = String(item.category || "").toLowerCase();
+      const text = `${item.title || ""} ${item.summary || ""}`.toLowerCase();
+      if (category.includes("security")) return true;
+      return SECURITY_TERMS.some(k => text.includes(k.toLowerCase()));
+    }
+
+    function isIsraelGeneralItem(item) {
+      const category = String(item.category || "").toLowerCase();
+      const categoryLabel = String(item.category_label || "").toLowerCase();
+      return (
+        category === "israel-general" ||
+        category.includes("israel-general") ||
+        categoryLabel.includes("ישראל-כללי")
+      );
+    }
+
+    function startBreakingLoop() {
+      if (breakingRaf) return;
+      const track = document.getElementById("breakingTrack");
+      if (!track) return;
+
+      const speedPxPerSec = 34;
+      const step = (ts) => {
+        if (!track.isConnected) {
+          breakingRaf = 0;
+          return;
+        }
+
+        if (!breakingLastTs) breakingLastTs = ts;
+        const dt = Math.min(64, ts - breakingLastTs);
+        breakingLastTs = ts;
+
+        const firstLine = track.querySelector(".breaking-line");
+        const firstWidth = firstLine ? firstLine.offsetWidth : 0;
+
+        if (!breakingPaused && firstWidth > 0) {
+          breakingOffset += (speedPxPerSec * dt) / 1000;
+          if (breakingOffset >= firstWidth) {
+            breakingOffset -= firstWidth;
+          }
+          track.style.transform = `translateX(${breakingOffset}px)`;
+        }
+
+        breakingRaf = requestAnimationFrame(step);
+      };
+
+      breakingRaf = requestAnimationFrame(step);
+    }
+
+    function setupBreakingHover() {
+      const strip = document.getElementById("breakingStrip");
+      if (!strip || strip.dataset.hoverReady === "1") return;
+      strip.dataset.hoverReady = "1";
+      strip.addEventListener("mouseenter", () => { breakingPaused = true; });
+      strip.addEventListener("mouseleave", () => { breakingPaused = false; });
+    }
+
+    function renderBreakingStrip() {
+      const strip = document.getElementById("breakingStrip");
+      const track = document.getElementById("breakingTrack");
+      if (!strip || !track) return;
+
+      const sourceItems = [...allItems]
+        .filter(isIsraelGeneralItem)
+        .sort((a, b) => {
+          const da = parseDate(a.published_at || a.created_at || "");
+          const db = parseDate(b.published_at || b.created_at || "");
+          return (db ? db.getTime() : 0) - (da ? da.getTime() : 0);
+        })
+        .slice(0, 10);
+
+      const line = sourceItems.map(item => {
+        const t = formatTickerTime(item.published_at || item.created_at || "");
+        const raw = String(item.title || "").replace(/\s+/g, " ").trim();
+        const title = raw.length > 88 ? `${raw.slice(0, 88)}...` : raw;
+        return `[${t}] ${title}`;
+      }).join("  •  ") || "אין מבזקים כרגע";
+
+      const sig = sourceItems
+        .map(item => `${item.id || ""}|${item.published_at || item.created_at || ""}|${item.title || ""}`)
+        .join(";") || "empty";
+
+      if (sig !== breakingSig || !track.innerHTML) {
+        const safe = escapeHtml(line);
+        track.innerHTML = `<span class="breaking-line">${safe}</span><span class="breaking-line" aria-hidden="true">${safe}</span>`;
+        breakingSig = sig;
+        breakingOffset = 0;
+        track.style.transform = "translateX(0px)";
+      }
+
+      strip.hidden = false;
+      setupBreakingHover();
+      startBreakingLoop();
+    }
+    function sportsItemsSignature(items) {
+      return items.map(i => `${i.home || ""}|${i.away || ""}|${i.score || ""}|${i.status || ""}|${i.is_live ? 1 : 0}`).join(";");
+    }
+
+    function renderSportsPanel() {
+      const listA = document.getElementById("sportsListA");
+      const listB = document.getElementById("sportsListB");
+      if (!listA || !listB) return;
+
+      if (!Array.isArray(sportsItems) || sportsItems.length === 0) {
+        const empty = '<div class="security-item is-empty"><span class="dot"></span><span>אין עדכוני ספורט כרגע.</span></div>';
+        listA.innerHTML = empty;
+        listB.innerHTML = empty;
+        return;
+      }
+
+      const liveFirst = [...sportsItems].sort((a, b) => (b.is_live === true) - (a.is_live === true));
+      const rows = liveFirst.slice(0, 16).map(item => {
+        const league = item.league || item.sport || "Sports";
+        const status = item.status || (item.is_live ? "LIVE" : "Not started");
+        const score = item.score || "-";
+        const row = `[${league}] ${item.home} ${score} ${item.away} (${status})`;
+        return `<div class="security-item"><span class="dot"></span><span>${escapeHtml(row)}</span></div>`;
+      }).join("");
+
+      listA.innerHTML = rows;
+      listB.innerHTML = rows;
+    }
+
+    async function refreshSportsLiveData() {
+      if (sportsRefreshInFlight) return;
+      sportsRefreshInFlight = true;
+      try {
+        const response = await fetch("/api/live-sports?limit=20", { cache: "no-store" });
+        if (!response.ok) return;
+        const data = await response.json();
+        const incoming = Array.isArray(data.items) ? data.items : [];
+        const sig = sportsItemsSignature(incoming);
+        if (sig && sig === sportsSignature) return;
+        sportsItems = incoming;
+        sportsSignature = sig;
+        renderSportsPanel();
+      } catch (_) {
+      } finally {
+        sportsRefreshInFlight = false;
+      }
     }
 
     function getFilteredItems() {
@@ -191,14 +370,13 @@
       const summary = escapeHtml(item.summary || "");
       const categoryLabel = escapeHtml(item.category_label || item.category || "");
       const styleLabel = escapeHtml(item.style_label || item.style_name || "");
-      const modelName = escapeHtml(item.model_name || "");
       const sourceName = escapeHtml(item.source_name || "");
       const dateText = escapeHtml(item.published_at || item.created_at || "");
       const link = item.link || "";
       const promptPath = item.prompt_path || "";
       const imagePath = item.image_path || "";
 
-      let imageBlock = '';
+      let imageBlock = "";
       if (imagePath) {
         if (imagePath.startsWith("http")) {
           imageBlock = `<a href="${escapeHtml(imagePath)}" target="_blank" rel="noopener"><img src="${escapeHtml(imagePath)}" alt="תמונת ידיעה" loading="lazy" referrerpolicy="no-referrer" /></a>`;
@@ -215,7 +393,6 @@
               <div class="meta">
                 <span class="pill category">${categoryLabel}</span>
                 <span class="pill style">${styleLabel}</span>
-                
               </div>
               <h2>${title}</h2>
               <p>${summary}</p>
@@ -240,10 +417,12 @@
       const items = getFilteredItems();
       if (!items.length) {
         newsFeed.innerHTML = '<div class="no-image">לא נמצאו ידיעות לסינון שבחרת.</div>';
+        renderBreakingStrip();
         return;
       }
 
       newsFeed.innerHTML = items.map(cardHtml).join("");
+      renderBreakingStrip();
     }
 
     function applyFilter() {
@@ -267,6 +446,7 @@
 
       localStorage.setItem("news_view", state.view || "grid");
       renderFeed();
+      renderSportsPanel();
     }
 
     function applyTheme() {
@@ -278,6 +458,8 @@
     }
 
     async function refreshNewsData() {
+      if (newsRefreshInFlight) return;
+      newsRefreshInFlight = true;
       try {
         const response = await fetch(`/api/news?limit=180&hours=${encodeURIComponent(state.hours || "24")}`, { cache: "no-store" });
         if (!response.ok) return;
@@ -289,6 +471,8 @@
         lastSignature = sig;
         renderFeed();
       } catch (_) {
+      } finally {
+        newsRefreshInFlight = false;
       }
     }
 
@@ -328,6 +512,8 @@
     applyTheme();
     applyFilter();
     lastSignature = itemSignature(allItems);
+    refreshNewsData();
+    refreshSportsLiveData();
 
     const rail = document.getElementById("headlineRail");
     const railA = document.getElementById("headlineListA");
@@ -346,10 +532,75 @@
       }, 45);
     }
 
+    const sportsRail = document.getElementById("sportsRail");
+    const sportsListA = document.getElementById("sportsListA");
+    let sportsPaused = false;
+
+    if (sportsRail && sportsListA) {
+      sportsRail.addEventListener("mouseenter", () => { sportsPaused = true; });
+      sportsRail.addEventListener("mouseleave", () => { sportsPaused = false; });
+
+      setInterval(() => {
+        if (sportsPaused) return;
+        sportsRail.scrollTop += 1;
+        if (sportsRail.scrollTop >= sportsListA.scrollHeight) {
+          sportsRail.scrollTop = 0;
+        }
+      }, 62);
+    }
+
     setInterval(() => {
-      if (!document.hidden) refreshNewsData();
+      refreshNewsData();
+    }, 30000);
+
+    setInterval(() => {
+      refreshSportsLiveData();
     }, 30000);
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

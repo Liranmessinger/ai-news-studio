@@ -1,6 +1,6 @@
 ﻿{
     "output_dir":  "output",
-    "max_items_per_source":  1,
+    "max_items_per_source": 3,
     "timeout_seconds":  30,
     "scheduler_interval_minutes":  15,
     "scheduler_interval_seconds":  30,
@@ -186,3 +186,4 @@
                   "api_key_env":  "OPENAI_API_KEY"
               }
 }
+
