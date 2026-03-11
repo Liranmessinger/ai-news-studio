@@ -31,7 +31,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 STORAGE_DIR = Path(os.getenv("DATA_DIR", str(BASE_DIR))).resolve()
 CONFIG_PATH = BASE_DIR / "config.json"
 DB_PATH = Path(os.getenv("NEWS_DB_PATH", str(STORAGE_DIR / "news.db"))).resolve()
-DEFAULT_HERO_IMAGE_URL = "https://storage.googleapis.com/assets_dilush/%D7%91%D7%99%D7%A0%D7%94%20%D7%91%20%D7%A7%D7%9C%D7%99%D7%A7/Assets/hero.png"
+DEFAULT_HERO_IMAGE_URL = "https://storage.googleapis.com/assets_dilush/%D7%91%D7%99%D7%A0%D7%94%20%D7%91%20%D7%A7%D7%9C%D7%99%D7%A7/Assets/hero2.png"
 
 CATEGORY_LABELS = {
     "israel-general": "ישראל - כללי",
@@ -989,10 +989,10 @@ def fetch_one_live_scores(limit: int = 20, timeout: int = 12) -> list[dict[str, 
         api_away_score = ((match.get("Away") or {}).get("Score") or {}).get("Match", -1)
         # ONE live payload appears reversed in our Hebrew presentation.
         # Normalize to בית/חוץ order with aligned score values.
-        home = api_away
-        away = api_home
-        home_score = api_away_score
-        away_score = api_home_score
+        home = api_home
+        away = api_away
+        home_score = api_home_score
+        away_score = api_away_score
         state = ((match.get("TextStates") or {}).get("State") or "").strip()
         minutes = ((match.get("TextStates") or {}).get("MinutesLive") or "").strip()
         sport_type = match.get("SportType", -1)
@@ -1194,6 +1194,7 @@ app = create_app()
 if __name__ == "__main__":
     debug_mode = os.getenv("FLASK_DEBUG", "0").strip().lower() in {"1", "true", "yes", "on"}
     app.run(host="0.0.0.0", port=8080, debug=debug_mode, use_reloader=False)
+
 
 
 

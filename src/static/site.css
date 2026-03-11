@@ -216,7 +216,7 @@ body {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center center;
 }
 
@@ -670,20 +670,20 @@ body[data-theme="white"] .breaking-strip {
 }
 
 .sports-side-panel {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--panel) 90%, #0b2750 10%), color-mix(in srgb, var(--panel) 92%, #06172f 8%));
-  border-color: color-mix(in srgb, #57a7ff 45%, var(--line));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--panel) 92%, #4a2e73 8%), color-mix(in srgb, var(--panel) 94%, #2e1f4d 6%));
+  border-color: color-mix(in srgb, #b79cff 45%, var(--line));
 }
 
 .sports-side-head {
-  color: #74c0ff;
+  color: #ceb8ff;
 }
 
 .sports-side-panel .dot {
-  background: #5ab2ff;
+  background: #c7b3ff;
 }
 
 .sports-side-panel .security-item:hover {
-  background: color-mix(in srgb, #2f80ff 16%, transparent);
+  background: color-mix(in srgb, #8f6bff 16%, transparent);
 }
 
 body[data-theme="white"] .sports-side-panel {
@@ -778,7 +778,7 @@ body[data-theme="white"] .sports-side-panel {
 }
 
 .feed.list-view .list-media img {
-  object-fit: contain;
+  object-fit: cover;
   margin-top: 0;
 }
 
@@ -929,14 +929,19 @@ footer {
   .hero-banner {
     margin-top: 0;
     border-radius: 14px;
-    width: 50%;
-    min-width: 280px;
-    margin-inline: auto;
+    width: calc(100% - 12px);
+    min-width: 0;
+    margin-inline: 6px;
   }
 
   .hero-banner,
   .hero-copy {
     min-height: 180px;
+  }
+
+  .hero-image {
+    object-fit: cover;
+    object-position: center center;
   }
 
   .hero-copy {
@@ -1143,12 +1148,12 @@ footer {
 }
 
 .mobile-sports-block {
-  border-color: color-mix(in srgb, #57a7ff 45%, var(--line));
-  background: linear-gradient(180deg, color-mix(in srgb, var(--panel) 90%, #0b2750 10%), color-mix(in srgb, var(--panel) 92%, #06172f 8%));
+  border-color: color-mix(in srgb, #b79cff 45%, var(--line));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--panel) 92%, #4a2e73 8%), color-mix(in srgb, var(--panel) 94%, #2e1f4d 6%));
 }
 
 .mobile-sports-head {
-  color: #74c0ff;
+  color: #ceb8ff;
 }
 
 @media (max-width: 760px) {
@@ -1173,6 +1178,11 @@ footer {
     flex: 0 1 auto;
   }
 }
+
+
+
+
+
 
 
 

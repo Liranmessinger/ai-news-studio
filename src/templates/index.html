@@ -42,7 +42,7 @@
 <body data-theme="ocean">
   <div class="mesh"></div>
 
-    {% set hero = namespace(url='https://storage.googleapis.com/assets_dilush/%D7%91%D7%99%D7%A0%D7%94%20%D7%91%20%D7%A7%D7%9C%D7%99%D7%A7/Assets/hero.png', headline='לירן - חדשות ללא הפסקה') %}
+    {% set hero = namespace(url='https://storage.googleapis.com/assets_dilush/%D7%91%D7%99%D7%A0%D7%94%20%D7%91%20%D7%A7%D7%9C%D7%99%D7%A7/Assets/hero2.png', headline='לירן - חדשות ללא הפסקה') %}
   {% for item in items %}
     {% if not hero.url and item.image_path and item.image_path|trim and item.image_path != 'None' %}
       {% if item.image_path.startswith('http') %}
@@ -55,7 +55,7 @@
   {% endfor %}
 
   <section class="hero-banner">
-    <img id="heroImage" src="https://storage.googleapis.com/assets_dilush/%D7%91%D7%99%D7%A0%D7%94%20%D7%91%20%D7%A7%D7%9C%D7%99%D7%A7/Assets/hero.png" data-locked="1" alt="תמונת שער" class="hero-image" loading="eager" referrerpolicy="no-referrer" />
+    <img id="heroImage" src="https://storage.googleapis.com/assets_dilush/%D7%91%D7%99%D7%A0%D7%94%20%D7%91%20%D7%A7%D7%9C%D7%99%D7%A7/Assets/hero2.png" data-locked="1" alt="תמונת שער" class="hero-image" loading="eager" referrerpolicy="no-referrer" />
     <div class="hero-overlay"></div>
     <div class="hero-copy">
       <span class="hero-kicker">LIVE NEWS</span>
@@ -729,6 +729,7 @@
   </script>
 </body>
 </html>
+
 
 
 
