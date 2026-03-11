@@ -15,7 +15,7 @@ from zoneinfo import ZoneInfo
 import httpx
 from apscheduler.schedulers.background import BackgroundScheduler
 from dateutil import parser as date_parser
-from flask import Flask, jsonify, render_template, request, send_from_directory
+from flask import Flask, Response, jsonify, render_template, request, send_from_directory
 
 from news_image_pipeline import (
     build_image_prompt,
@@ -31,6 +31,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 STORAGE_DIR = Path(os.getenv("DATA_DIR", str(BASE_DIR))).resolve()
 CONFIG_PATH = BASE_DIR / "config.json"
 DB_PATH = Path(os.getenv("NEWS_DB_PATH", str(STORAGE_DIR / "news.db"))).resolve()
+DEFAULT_HERO_IMAGE_URL = "https://storage.googleapis.com/assets_dilush/%D7%91%D7%99%D7%A0%D7%94%20%D7%91%20%D7%A7%D7%9C%D7%99%D7%A7/Assets/hero.png"
 
 CATEGORY_LABELS = {
     "israel-general": "ישראל - כללי",
@@ -94,6 +95,26 @@ def resolve_output_dir(config: dict[str, Any]) -> Path:
     return path.resolve()
 
 
+
+def resolve_manual_hero_image() -> str | None:
+    direct_url = DEFAULT_HERO_IMAGE_URL
+    if direct_url:
+        return direct_url
+        direct_url = DEFAULT_HERO_IMAGE_URL
+    if direct_url:
+        return direct_url
+
+    for filename in ("hero.jpg", "hero.jpeg", "hero.png", "hero.webp"):
+        root_candidate = STORAGE_DIR / filename
+        if root_candidate.exists() and root_candidate.is_file():
+            return f"/files/{filename}"
+
+    hero_dir = STORAGE_DIR / "hero"
+    for filename in ("hero.jpg", "hero.jpeg", "hero.png", "hero.webp"):
+        candidate = hero_dir / filename
+        if candidate.exists() and candidate.is_file():
+            return f"/files/hero/{filename}"
+    return None
 def to_storage_relative(path: Path) -> str:
     resolved = path.resolve()
     try:
@@ -959,13 +980,19 @@ def fetch_one_live_scores(limit: int = 20, timeout: int = 12) -> list[dict[str, 
 
     for league in leagues:
       for match in league.get("Matches", []) or []:
-        home = ((match.get("Home") or {}).get("Name") or {}).get("Main", "")
-        away = ((match.get("Away") or {}).get("Name") or {}).get("Main", "")
-        if not home or not away:
+        api_home = ((match.get("Home") or {}).get("Name") or {}).get("Main", "")
+        api_away = ((match.get("Away") or {}).get("Name") or {}).get("Main", "")
+        if not api_home or not api_away:
           continue
 
-        home_score = ((match.get("Home") or {}).get("Score") or {}).get("Match", -1)
-        away_score = ((match.get("Away") or {}).get("Score") or {}).get("Match", -1)
+        api_home_score = ((match.get("Home") or {}).get("Score") or {}).get("Match", -1)
+        api_away_score = ((match.get("Away") or {}).get("Score") or {}).get("Match", -1)
+        # ONE live payload appears reversed in our Hebrew presentation.
+        # Normalize to בית/חוץ order with aligned score values.
+        home = api_away
+        away = api_home
+        home_score = api_away_score
+        away_score = api_home_score
         state = ((match.get("TextStates") or {}).get("State") or "").strip()
         minutes = ((match.get("TextStates") or {}).get("MinutesLive") or "").strip()
         sport_type = match.get("SportType", -1)
@@ -1083,7 +1110,7 @@ def create_app() -> Flask:
         items = get_news(limit=120, hours=hours)
         taxonomy = get_taxonomy()
         stats = {"total_items": count_news(), "last_update": items[0]["created_at"] if items else None}
-        return render_template("index.html", items=items, taxonomy=taxonomy, stats=stats)
+        return render_template("index.html", items=items, taxonomy=taxonomy, stats=stats, manual_hero_image=resolve_manual_hero_image())
 
     @app.route("/api/news")
     def api_news() -> Any:
@@ -1110,6 +1137,50 @@ def create_app() -> Flask:
         safe_cycle()
         return jsonify({"ok": True})
 
+
+    @app.route("/robots.txt")
+    def robots() -> Any:
+        base = request.url_root.rstrip("/")
+        content = (
+            "User-agent: *\n"
+            "Allow: /\n"
+            "Disallow: /api/\n"
+            f"Sitemap: {base}/sitemap.xml\n"
+        )
+        return Response(content, mimetype="text/plain; charset=utf-8")
+
+    @app.route("/sitemap.xml")
+    def sitemap() -> Any:
+        base = request.url_root.rstrip("/")
+        taxonomy = get_taxonomy()
+        items = get_news(limit=1, hours=24)
+        lastmod = items[0].get("created_at") if items else utc_now_iso()
+
+        urls = [f"{base}/"]
+        for cat in taxonomy.get("categories", []):
+            value = str(cat.get("value", "")).strip()
+            if not value:
+                continue
+            urls.append(f"{base}/?{urlencode({'category': value})}")
+
+        nodes = []
+        for u in urls:
+            nodes.append(
+                "  <url>\n"
+                f"    <loc>{html.escape(u)}</loc>\n"
+                f"    <lastmod>{html.escape(lastmod)}</lastmod>\n"
+                "    <changefreq>always</changefreq>\n"
+                "    <priority>0.8</priority>\n"
+                "  </url>"
+            )
+
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+            + "\n".join(nodes)
+            + "\n</urlset>\n"
+        )
+        return Response(xml, mimetype="application/xml; charset=utf-8")
     @app.route("/files/<path:filename>")
     def files(filename: str) -> Any:
         return send_from_directory(STORAGE_DIR, filename)
@@ -1123,6 +1194,17 @@ app = create_app()
 if __name__ == "__main__":
     debug_mode = os.getenv("FLASK_DEBUG", "0").strip().lower() in {"1", "true", "yes", "on"}
     app.run(host="0.0.0.0", port=8080, debug=debug_mode, use_reloader=False)
+
+
+
+
+
+
+
+
+
+
+
 
 
 

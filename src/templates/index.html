@@ -3,7 +3,37 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>AI News Studio</title>
+  <title>לירן - חדשות ללא הפסקה</title>
+  {% set seo = namespace(description='לירן - חדשות ללא הפסקה: מבזקים וחדשות בזמן אמת מישראל ומהעולם.', image='', headline='לירן - חדשות ללא הפסקה') %}
+  {% if items and items|length > 0 %}
+    {% set seo.headline = items[0].title %}
+    {% if items[0].summary %}{% set seo.description = items[0].summary %}{% endif %}
+    {% if items[0].image_path %}
+      {% if items[0].image_path.startswith('http') %}
+        {% set seo.image = items[0].image_path %}
+      {% else %}
+        {% set seo.image = request.url_root.rstrip('/') ~ '/files/' ~ items[0].image_path %}
+      {% endif %}
+    {% endif %}
+  {% endif %}
+  <meta name="description" content="{{ seo.description }}" />
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+  <meta name="googlebot" content="index,follow,max-image-preview:large" />
+  <link rel="canonical" href="{{ request.base_url }}" />
+  <link rel="alternate" hreflang="he-IL" href="{{ request.base_url }}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="he_IL" />
+  <meta property="og:site_name" content="לירן - חדשות ללא הפסקה" />
+  <meta property="og:title" content="{{ seo.headline }}" />
+  <meta property="og:description" content="{{ seo.description }}" />
+  <meta property="og:url" content="{{ request.base_url }}" />
+  {% if seo.image %}<meta property="og:image" content="{{ seo.image }}" />{% endif %}
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="{{ seo.headline }}" />
+  <meta name="twitter:description" content="{{ seo.description }}" />
+  {% if seo.image %}<meta name="twitter:image" content="{{ seo.image }}" />{% endif %}
+  <script type="application/ld+json">{{ {"@context":"https://schema.org","@type":"NewsMediaOrganization","name":"לירן - חדשות ללא הפסקה","url":request.url_root.rstrip("/"),"inLanguage":"he-IL"}|tojson }}</script>
+  <script type="application/ld+json">{{ {"@context":"https://schema.org","@type":"CollectionPage","name":seo.headline,"description":seo.description,"url":request.base_url,"inLanguage":"he-IL"}|tojson }}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;500;800&display=swap" rel="stylesheet">
@@ -12,43 +42,46 @@
 <body data-theme="ocean">
   <div class="mesh"></div>
 
-  <header class="topbar">
-    <h1 class="brand-title">חדשות מסינגר-אתר החדשות של ישראל</h1>
-    <div class="theme-menu" id="themeMenu">
-      <button class="theme-menu-btn" id="themeMenuBtn" title="בחירת צבעים" aria-label="בחירת צבעים"><span class="palette-glyph" aria-hidden="true"></span></button>
-      <div class="theme-popover" id="themePopover" hidden>
-        <div class="theme-row" id="themeRow">
-          <button class="theme-chip active" data-theme="ocean" title="אושן" aria-label="אושן">
-            <span class="theme-icon icon-ocean"></span>
-          </button>
-          <button class="theme-chip" data-theme="sunset" title="סאנסט" aria-label="סאנסט">
-            <span class="theme-icon icon-sunset"></span>
-          </button>
-          <button class="theme-chip" data-theme="mint" title="מינט" aria-label="מינט">
-            <span class="theme-icon icon-mint"></span>
-          </button>
-          <button class="theme-chip" data-theme="mono" title="מונו" aria-label="מונו">
-            <span class="theme-icon icon-mono"></span>
-          </button>
-          <button class="theme-chip" data-theme="dark" title="דארק" aria-label="דארק">
-            <span class="theme-icon icon-dark"></span>
-          </button>
-          <button class="theme-chip" data-theme="white" title="לבן" aria-label="לבן">
-            <span class="theme-icon icon-white"></span>
-          </button>
-        </div>
-      </div>
+    {% set hero = namespace(url='https://storage.googleapis.com/assets_dilush/%D7%91%D7%99%D7%A0%D7%94%20%D7%91%20%D7%A7%D7%9C%D7%99%D7%A7/Assets/hero.png', headline='לירן - חדשות ללא הפסקה') %}
+  {% for item in items %}
+    {% if not hero.url and item.image_path and item.image_path|trim and item.image_path != 'None' %}
+      {% if item.image_path.startswith('http') %}
+        {% set hero.url = item.image_path %}
+      {% else %}
+        {% set hero.url = '/files/' ~ item.image_path %}
+      {% endif %}
+      {% set hero.headline = item.title %}
+    {% endif %}
+  {% endfor %}
+
+  <section class="hero-banner">
+    <img id="heroImage" src="https://storage.googleapis.com/assets_dilush/%D7%91%D7%99%D7%A0%D7%94%20%D7%91%20%D7%A7%D7%9C%D7%99%D7%A7/Assets/hero.png" data-locked="1" alt="תמונת שער" class="hero-image" loading="eager" referrerpolicy="no-referrer" />
+    <div class="hero-overlay"></div>
+    <div class="hero-copy">
+      <span class="hero-kicker">LIVE NEWS</span>
+      <h2 id="heroTitle">לירן - חדשות ללא הפסקה</h2>
+      <p id="heroHeadline">{{ hero.headline }}</p>
     </div>
-  </header>
+  </section>
 
   <section class="content-shell">
     <section class="quick-filters">
-      <div class="filter-row" id="hoursRow">
-        <button class="chip" data-filter-type="hours" data-value="1">שעה</button>
-        <button class="chip" data-filter-type="hours" data-value="3">3 שעות</button>
-        <button class="chip" data-filter-type="hours" data-value="6">6 שעות</button>
-        <button class="chip" data-filter-type="hours" data-value="12">12 שעות</button>
-        <button class="chip active" data-filter-type="hours" data-value="24">24 שעות</button>
+      <div class="hours-theme-row">
+        <div class="theme-inline" id="themeRow">
+          <button class="theme-chip active" data-theme="ocean" title="אושן" aria-label="אושן"><span class="theme-icon icon-ocean"></span></button>
+          <button class="theme-chip" data-theme="sunset" title="סאנסט" aria-label="סאנסט"><span class="theme-icon icon-sunset"></span></button>
+          <button class="theme-chip" data-theme="mint" title="מינט" aria-label="מינט"><span class="theme-icon icon-mint"></span></button>
+          <button class="theme-chip" data-theme="mono" title="מונו" aria-label="מונו"><span class="theme-icon icon-mono"></span></button>
+          <button class="theme-chip" data-theme="dark" title="דארק" aria-label="דארק"><span class="theme-icon icon-dark"></span></button>
+          <button class="theme-chip" data-theme="white" title="לבן" aria-label="לבן"><span class="theme-icon icon-white"></span></button>
+        </div>
+        <div class="filter-row hours-row" id="hoursRow">
+          <button class="chip" data-filter-type="hours" data-value="1">שעה</button>
+          <button class="chip" data-filter-type="hours" data-value="3">3 שעות</button>
+          <button class="chip" data-filter-type="hours" data-value="6">6 שעות</button>
+          <button class="chip" data-filter-type="hours" data-value="12">12 שעות</button>
+          <button class="chip active" data-filter-type="hours" data-value="24">24 שעות</button>
+        </div>
       </div>
 
       <div class="filter-row" id="categoryRow">
@@ -57,17 +90,17 @@
         <button class="chip" data-filter-type="category" data-value="{{ c.value }}">{{ c.label }}</button>
         {% endfor %}
       </div>
-
-      <div class="filter-row" id="styleRow">
-        <button class="chip active" data-filter-type="style" data-value="">כל הסגנונות</button>
-        {% for s in taxonomy.styles %}
-        <button class="chip" data-filter-type="style" data-value="{{ s.value }}">{{ s.label }}</button>
-        {% endfor %}
-      </div>
-
-      <div class="filter-row" id="viewRow">
-        <button class="chip view-chip active" data-filter-type="view" data-value="grid" title="תצוגת כרטיסים" aria-label="תצוגת כרטיסים"><span class="view-icon view-grid" aria-hidden="true"></span></button>
-        <button class="chip view-chip" data-filter-type="view" data-value="list" title="תצוגת רשימה" aria-label="תצוגת רשימה"><span class="view-icon view-list" aria-hidden="true"></span></button>
+      <div class="style-view-row">
+        <div class="filter-row" id="styleRow">
+          <button class="chip active" data-filter-type="style" data-value="">כל הסגנונות</button>
+          {% for s in taxonomy.styles %}
+          <button class="chip" data-filter-type="style" data-value="{{ s.value }}">{{ s.label }}</button>
+          {% endfor %}
+        </div>
+        <div class="view-inline" id="viewRow">
+          <button class="chip view-chip active" data-filter-type="view" data-value="grid" title="תצוגת כרטיסים" aria-label="תצוגת כרטיסים"><span class="view-icon view-grid" aria-hidden="true"></span></button>
+          <button class="chip view-chip" data-filter-type="view" data-value="list" title="תצוגת רשימה" aria-label="תצוגת רשימה"><span class="view-icon view-list" aria-hidden="true"></span></button>
+        </div>
       </div>
 
       <div class="breaking-strip" id="breakingStrip" hidden>
@@ -345,11 +378,11 @@
         const league = item.league || item.sport || "Sports";
         const status = item.status || (item.is_live ? "LIVE" : "Not started");
         const score = item.score || "-";
-        const home = escapeHtml(item.home || "");
-        const away = escapeHtml(item.away || "");
-        const safeLeague = escapeHtml(league);
-        const safeStatus = escapeHtml(status);
-        const safeScore = escapeHtml(score);
+        const home = `<bdi>${escapeHtml(item.home || "")}</bdi>`;
+        const away = `<bdi>${escapeHtml(item.away || "")}</bdi>`;
+        const safeLeague = `<bdi>${escapeHtml(league)}</bdi>`;
+        const safeStatus = `<bdi>${escapeHtml(status)}</bdi>`;
+        const safeScore = `<bdi>${escapeHtml(score)}</bdi>`;
         return `<div class="security-item sports-item"><span class="dot"></span><span class="sports-line-item">${escapeHtml("ליגה")}: ${safeLeague} | ${escapeHtml("בית")}: ${home} | ${escapeHtml("חוץ")}: ${away} | ${escapeHtml("תוצאה")}: ${safeScore} (${safeStatus})</span></div>`;
       }).join("");
 
@@ -370,12 +403,14 @@
         sportsItems = incoming;
         sportsSignature = sig;
         renderSportsPanel();
+        if (window.matchMedia("(max-width: 1200px)").matches) {
+          renderFeed();
+        }
       } catch (_) {
       } finally {
         sportsRefreshInFlight = false;
       }
     }
-
     function getFilteredItems() {
       const now = new Date();
       const hoursNum = parseInt(state.hours || "24", 10);
@@ -445,6 +480,113 @@
       `;
     }
 
+
+    function hasRealImage(item) {
+      const imagePath = String(item?.image_path || "").trim();
+      if (!imagePath || imagePath === "None") return false;
+      if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) return true;
+      if (imagePath.startsWith("/files/")) return true;
+      if (imagePath.startsWith("output/")) return true;
+      return /\.(png|jpe?g|webp|gif|avif)(\?.*)?$/i.test(imagePath);
+    }
+
+    function imageSrcFromItem(item) {
+      const imagePath = String(item?.image_path || "").trim();
+      if (!imagePath) return "";
+      if (imagePath.startsWith("http://") || imagePath.startsWith("https://") || imagePath.startsWith("/files/")) {
+        return imagePath;
+      }
+      return `/files/${imagePath}`;
+    }
+
+    function refreshHeroQuick() {
+      const heroHeadline = document.getElementById("heroHeadline");
+      const heroImage = document.getElementById("heroImage");
+      if (!heroHeadline) return;
+
+      if (!Array.isArray(allItems) || !allItems.length) return;
+      const latest = allItems.find(hasRealImage) || allItems[0];
+      if (!latest) return;
+
+      heroHeadline.textContent = `מבזק מהיר: ${latest.title || ""}`;
+
+      if (!heroImage) return;
+      if (heroImage.dataset.locked === "1") return;
+      if (!hasRealImage(latest)) return;
+
+      const src = imageSrcFromItem(latest);
+      if (!src) return;
+      if (heroImage.getAttribute("src") !== src) {
+        heroImage.setAttribute("src", src);
+      }
+      heroImage.style.display = "block";
+    }
+
+    function compactHeadlinesHtml(items) {
+      const headlines = (items || []).slice(0, 12).map(item => {
+        const t = String(item.title || "").trim();
+        const link = item.link || "#";
+        return `<a class="mobile-running-item" href="${escapeHtml(link)}" ${link !== "#" ? 'target="_blank" rel="noopener"' : ""}><span class="dot"></span><span>${escapeHtml(t)}</span></a>`;
+      }).join("");
+
+      if (!headlines) return "";
+
+      return `
+        <section class="mobile-running-block" aria-label="כותרות רצות">
+          <div class="mobile-running-head">חדשות רצות</div>
+          <div class="mobile-running-rail">
+            <div class="mobile-running-list">${headlines}</div>
+            <div class="mobile-running-list" aria-hidden="true">${headlines}</div>
+          </div>
+        </section>
+      `;
+    }
+
+    function compactSportsHtml() {
+      if (!Array.isArray(sportsItems) || sportsItems.length === 0) {
+        return `
+          <section class="mobile-running-block mobile-sports-block" aria-label="עדכוני ספורט">
+            <div class="mobile-running-head mobile-sports-head">עדכוני ספורט</div>
+            <div class="mobile-running-rail">
+              <div class="mobile-running-list">
+                <div class="mobile-running-item"><span class="dot"></span><span>אין עדכוני ספורט כרגע.</span></div>
+              </div>
+            </div>
+          </section>
+        `;
+      }
+
+      const liveFirst = [...sportsItems].sort((a, b) => (b.is_live === true) - (a.is_live === true));
+      const rows = liveFirst.slice(0, 16).map(item => {
+        const league = `<bdi>${escapeHtml(item.league || item.sport || "Sports")}</bdi>`;
+        const status = `<bdi>${escapeHtml(item.status || (item.is_live ? "LIVE" : "Not started"))}</bdi>`;
+        const score = `<bdi>${escapeHtml(item.score || "-")}</bdi>`;
+        const home = `<bdi>${escapeHtml(item.home || "")}</bdi>`;
+        const away = `<bdi>${escapeHtml(item.away || "")}</bdi>`;
+        const text = `${league} | בית: ${home} | חוץ: ${away} | תוצאה: ${score} (${status})`;
+        return `<div class="mobile-running-item"><span class="dot"></span><span>${text}</span></div>`;
+      }).join("");
+
+      return `
+        <section class="mobile-running-block mobile-sports-block" aria-label="עדכוני ספורט">
+          <div class="mobile-running-head mobile-sports-head">עדכוני ספורט</div>
+          <div class="mobile-running-rail">
+            <div class="mobile-running-list">${rows}</div>
+            <div class="mobile-running-list" aria-hidden="true">${rows}</div>
+          </div>
+        </section>
+      `;
+    }
+
+    function compactInlinePanelsHtml(items) {
+      return `
+        <section class="compact-panels-inline">
+          ${compactHeadlinesHtml(items)}
+          ${compactSportsHtml()}
+        </section>
+      `;
+    }
+
     function renderFeed() {
       const newsFeed = document.getElementById("newsFeed");
       if (!newsFeed) return;
@@ -452,11 +594,22 @@
       const items = getFilteredItems();
       if (!items.length) {
         newsFeed.innerHTML = '<div class="no-image">לא נמצאו ידיעות לסינון שבחרת.</div>';
+        refreshHeroQuick();
         renderBreakingStrip();
         return;
       }
 
-      newsFeed.innerHTML = items.map(cardHtml).join("");
+      const isCompact = window.matchMedia("(max-width: 1200px)").matches;
+      if (isCompact) {
+        const splitAt = Math.min(5, items.length);
+        const first = items.slice(0, splitAt).map(cardHtml).join("");
+        const rest = items.slice(splitAt).map(cardHtml).join("");
+        newsFeed.innerHTML = first + compactInlinePanelsHtml(items) + rest;
+      } else {
+        newsFeed.innerHTML = items.map(cardHtml).join("");
+      }
+
+      refreshHeroQuick();
       renderBreakingStrip();
     }
 
@@ -523,27 +676,9 @@
       chip.addEventListener("click", () => {
         state.theme = chip.dataset.theme;
         applyTheme();
-        if (themePopover) themePopover.hidden = true;
+
       });
     });
-
-    const themeMenu = document.getElementById("themeMenu");
-    const themeMenuBtn = document.getElementById("themeMenuBtn");
-    const themePopover = document.getElementById("themePopover");
-
-    if (themeMenuBtn && themePopover) {
-      themeMenuBtn.addEventListener("click", () => {
-        themePopover.hidden = !themePopover.hidden;
-      });
-
-      document.addEventListener("click", (ev) => {
-        if (!themeMenu) return;
-        if (!themeMenu.contains(ev.target)) {
-          themePopover.hidden = true;
-        }
-      });
-    }
-
     applyTheme();
     applyFilter();
     lastSignature = itemSignature(allItems);
@@ -594,6 +729,31 @@
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
