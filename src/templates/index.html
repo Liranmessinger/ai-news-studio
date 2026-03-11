@@ -97,7 +97,7 @@
           <button class="chip" data-filter-type="style" data-value="{{ s.value }}">{{ s.label }}</button>
           {% endfor %}
         </div>
-                <div class="view-inline" id="viewRow">
+        <div class="view-inline" id="viewRow">
           <button class="theme-mobile-btn" id="themeMobileBtn" aria-label="בחירת ערכת צבע" aria-expanded="false" type="button">
             <span class="palette-glyph" aria-hidden="true"></span>
           </button>
@@ -674,7 +674,24 @@
         applyFilter();
       });
     });
-    const themeMobileBtn = document.getElementById("themeMobileBtn");
+    function ensureThemeMobileBtn() {
+      const viewRow = document.getElementById("viewRow");
+      if (!viewRow) return null;
+      let btn = document.getElementById("themeMobileBtn");
+      if (btn) return btn;
+
+      btn = document.createElement("button");
+      btn.className = "theme-mobile-btn";
+      btn.id = "themeMobileBtn";
+      btn.type = "button";
+      btn.setAttribute("aria-label", "בחירת ערכת צבע");
+      btn.setAttribute("aria-expanded", "false");
+      btn.innerHTML = '<span class="palette-glyph" aria-hidden="true"></span>';
+      viewRow.insertBefore(btn, viewRow.firstChild);
+      return btn;
+    }
+
+    const themeMobileBtn = ensureThemeMobileBtn();
     const themeRow = document.getElementById("themeRow");
     function closeThemePicker() {
       if (!themeRow || !themeMobileBtn) return;
@@ -754,6 +771,9 @@
   </script>
 </body>
 </html>
+
+
+
 
 
 

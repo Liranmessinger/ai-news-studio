@@ -1,4 +1,37 @@
-﻿:root {
+﻿@media (max-width: 760px) {
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  body {
+    padding-inline: 0 !important;
+  }
+
+  .content-shell,
+  .workspace,
+  .feed,
+  .quick-filters,
+  .style-view-row,
+  .hours-theme-row {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-inline: auto !important;
+  }
+
+  .view-inline {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .view-inline .theme-mobile-btn {
+    display: inline-flex !important;
+  }
+}
+:root {
   --bg: #081019;
   --shell: #0c1a2f;
   --topbar-a: #0f2f56;
@@ -306,7 +339,7 @@ body {
   transform: scale(1.05);
 }
 
- .palette-glyph {
+.palette-glyph {
   display: inline-block;
   width: 22px;
   height: 22px;
@@ -1296,6 +1329,7 @@ footer {
     flex: 0 1 auto;
   }
 }
+
 
 
 
