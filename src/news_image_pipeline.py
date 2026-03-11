@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import feedparser
 import httpx
@@ -15,6 +16,7 @@ from bs4 import BeautifulSoup
 from dateutil import parser as date_parser
 
 logger = logging.getLogger("news_image_pipeline")
+ISRAEL_TZ = ZoneInfo("Asia/Jerusalem")
 
 
 DEFAULT_STYLES = {
@@ -77,7 +79,10 @@ def parse_published(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
-        return date_parser.parse(value)
+        dt = date_parser.parse(value)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=ISRAEL_TZ)
+        return dt
     except Exception:
         return None
 
@@ -455,6 +460,10 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+
+
 
 
 

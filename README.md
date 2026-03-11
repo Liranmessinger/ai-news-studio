@@ -55,6 +55,7 @@ python src/app.py
 - `default_style`: סגנון ברירת מחדל.
 - `source_style_map`: סגנון לפי מקור.
 - `category_style_map`: סגנון לפי קטגוריה.
+- `retention_hours` (optional) – כמה שעות לשמור פריטי חדשות ב‑DB לפני מחיקה אוטומטית (ברירת מחדל 24); מנגנון רץ כל שעה.
 
 ## פריסה ל־AWS
 אפשר לפרוס בקלות ל־ECS/App Runner/Elastic Beanstalk באמצעות Docker.

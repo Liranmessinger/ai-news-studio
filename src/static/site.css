@@ -862,3 +862,16 @@ footer {
 
 
 
+
+.sports-item .sports-line-item {
+  direction: rtl;
+  unicode-bidi: plaintext;
+  display: inline-block;
+  text-align: right;
+}
+
+
+.sports-line-item bdi {
+  unicode-bidi: isolate;
+}
+

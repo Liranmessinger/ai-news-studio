@@ -1,12 +1,16 @@
 ﻿import html
+import hashlib
 import logging
 import os
 import re
 import sqlite3
 import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from zoneinfo import ZoneInfo
 
 import httpx
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -63,6 +67,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 
 LIVE_SPORTS_CACHE: dict[str, Any] = {"ts": None, "items": []}
 LIVE_SPORTS_LOCK = threading.Lock()
+ENRICH_EXECUTOR = ThreadPoolExecutor(max_workers=max(2, int(os.getenv("ENRICH_WORKERS", "4"))))
+ENRICH_INFLIGHT: set[str] = set()
+ENRICH_LOCK = threading.Lock()
+ISRAEL_TZ = ZoneInfo("Asia/Jerusalem")
+HTML_REFRESH_LOCK = threading.Lock()
 
 
 def utc_now_iso() -> str:
@@ -241,6 +250,63 @@ def parse_dt(value: str | None) -> datetime:
         return datetime.min.replace(tzinfo=UTC)
 
 
+
+def to_israel_time_iso(value: str | None) -> str:
+    if not value:
+        return ""
+    dt = parse_dt(value)
+    if dt == datetime.min.replace(tzinfo=UTC):
+        return value
+    return dt.astimezone(ISRAEL_TZ).isoformat(timespec="seconds")
+def israel_date_time_parts(value: str | None) -> tuple[str, str]:
+    if not value:
+        return "", ""
+    dt = parse_dt(value)
+    if dt == datetime.min.replace(tzinfo=UTC):
+        return value, ""
+    local_dt = dt.astimezone(ISRAEL_TZ)
+    return local_dt.strftime("%d-%m-%Y"), local_dt.strftime("%H:%M")
+
+TRACKING_QUERY_KEYS = {
+    "utm_source",
+    "utm_medium",
+    "utm_campaign",
+    "utm_term",
+    "utm_content",
+    "utm_id",
+    "gclid",
+    "fbclid",
+    "mc_cid",
+    "mc_eid",
+}
+
+
+def canonicalize_url(url: str) -> str:
+    value = (url or "").strip()
+    if not value:
+        return ""
+    try:
+        parts = urlsplit(value)
+        netloc = parts.netloc.lower()
+        if netloc.endswith(":80"):
+            netloc = netloc[:-3]
+        if netloc.endswith(":443"):
+            netloc = netloc[:-4]
+        path = re.sub(r"/{2,}", "/", parts.path or "/")
+        path = path.rstrip("/") or "/"
+        filtered_query = [(k, v) for (k, v) in parse_qsl(parts.query, keep_blank_values=True) if k.lower() not in TRACKING_QUERY_KEYS]
+        query = urlencode(filtered_query, doseq=True)
+        return urlunsplit((parts.scheme.lower() or "https", netloc, path, query, ""))
+    except Exception:
+        return value
+
+
+def build_content_hash(title: str, summary: str) -> str:
+    normalized = normalized_for_compare(f"{title} {summary}")
+    if not normalized:
+        return ""
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
 def init_db() -> None:
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute(
@@ -258,6 +324,8 @@ def init_db() -> None:
                 model_name TEXT NOT NULL DEFAULT '',
                 image_path TEXT,
                 prompt_path TEXT,
+                canonical_url TEXT NOT NULL DEFAULT '',
+                content_hash TEXT NOT NULL DEFAULT '',
                 prompt_text TEXT NOT NULL,
                 UNIQUE(link, style_name)
             )
@@ -266,14 +334,44 @@ def init_db() -> None:
         cols = [r[1] for r in conn.execute("PRAGMA table_info(news_items)").fetchall()]
         if "model_name" not in cols:
             conn.execute("ALTER TABLE news_items ADD COLUMN model_name TEXT NOT NULL DEFAULT ''")
+        if "canonical_url" not in cols:
+            conn.execute("ALTER TABLE news_items ADD COLUMN canonical_url TEXT NOT NULL DEFAULT ''")
+        if "content_hash" not in cols:
+            conn.execute("ALTER TABLE news_items ADD COLUMN content_hash TEXT NOT NULL DEFAULT ''")
+
         conn.execute("CREATE INDEX IF NOT EXISTS idx_news_created_at ON news_items(created_at DESC)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_news_category ON news_items(category)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_news_style ON news_items(style_name)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_news_model ON news_items(model_name)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_news_canonical_url ON news_items(canonical_url)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_news_content_hash ON news_items(content_hash)")
 
-
-def news_exists(link: str, style_name: str, source_name: str, title: str, published_at: str | None) -> bool:
+def news_exists(
+    link: str,
+    style_name: str,
+    source_name: str,
+    title: str,
+    published_at: str | None,
+    canonical_url: str = "",
+    content_hash: str = "",
+) -> bool:
     with sqlite3.connect(DB_PATH) as conn:
+        if canonical_url:
+            row = conn.execute(
+                "SELECT 1 FROM news_items WHERE canonical_url = ? AND style_name = ? LIMIT 1",
+                (canonical_url, style_name),
+            ).fetchone()
+            if row:
+                return True
+
+        if content_hash:
+            row = conn.execute(
+                "SELECT 1 FROM news_items WHERE content_hash = ? AND style_name = ? AND source_name = ? LIMIT 1",
+                (content_hash, style_name, source_name),
+            ).fetchone()
+            if row:
+                return True
+
         if link:
             row = conn.execute(
                 "SELECT 1 FROM news_items WHERE link = ? AND style_name = ? LIMIT 1",
@@ -293,7 +391,6 @@ def news_exists(link: str, style_name: str, source_name: str, title: str, publis
         ).fetchone()
         return bool(row)
 
-
 def insert_news_item(item: dict[str, Any]) -> bool:
     with sqlite3.connect(DB_PATH) as conn:
         try:
@@ -301,9 +398,9 @@ def insert_news_item(item: dict[str, Any]) -> bool:
                 """
                 INSERT INTO news_items (
                     source_name, title, summary, category, link, published_at, created_at,
-                    style_name, model_name, image_path, prompt_path, prompt_text
+                    style_name, model_name, image_path, prompt_path, canonical_url, content_hash, prompt_text
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     item["source_name"],
@@ -317,13 +414,14 @@ def insert_news_item(item: dict[str, Any]) -> bool:
                     item["model_name"],
                     item["image_path"],
                     item["prompt_path"],
+                    item.get("canonical_url", ""),
+                    item.get("content_hash", ""),
                     item["prompt_text"],
                 ),
             )
             return True
         except sqlite3.IntegrityError:
             return False
-
 
 def update_missing_image(
     link: str,
@@ -363,6 +461,152 @@ def update_missing_image(
         )
 
 
+
+
+def _enrich_key(link: str, style_name: str, source_name: str, title: str, published_at: str | None) -> str:
+    if link:
+        return f"link:{link}|style:{style_name}"
+    return f"src:{source_name}|title:{title}|pub:{published_at or ''}|style:{style_name}"
+
+
+def _claim_enrich_task(key: str) -> bool:
+    with ENRICH_LOCK:
+        if key in ENRICH_INFLIGHT:
+            return False
+        ENRICH_INFLIGHT.add(key)
+        return True
+
+
+def _release_enrich_task(key: str) -> None:
+    with ENRICH_LOCK:
+        ENRICH_INFLIGHT.discard(key)
+
+
+def update_news_item_enrichment(
+    link: str,
+    style_name: str,
+    source_name: str,
+    title: str,
+    published_at: str | None,
+    summary: str,
+    model_name: str,
+    image_path: str | None,
+    prompt_path: str | None,
+    prompt_text: str,
+) -> None:
+    summary = (summary or "אין תקציר זמין כרגע.").strip()
+    prompt_text = (prompt_text or "").strip()
+    content_hash = build_content_hash(title, summary)
+
+    with sqlite3.connect(DB_PATH) as conn:
+        if link:
+            conn.execute(
+                """
+                UPDATE news_items
+                SET summary = ?,
+                    model_name = ?,
+                    prompt_text = ?,
+                    content_hash = COALESCE(?, content_hash),
+                    prompt_path = COALESCE(?, prompt_path),
+                    image_path = COALESCE(?, image_path)
+                WHERE link = ? AND style_name = ?
+                """,
+                (summary, model_name, prompt_text, content_hash, prompt_path, image_path, link, style_name),
+            )
+            return
+
+        conn.execute(
+            """
+            UPDATE news_items
+            SET summary = ?,
+                model_name = ?,
+                prompt_text = ?,
+                content_hash = COALESCE(?, content_hash),
+                prompt_path = COALESCE(?, prompt_path),
+                image_path = COALESCE(?, image_path)
+            WHERE source_name = ?
+              AND title = ?
+              AND COALESCE(published_at, '') = COALESCE(?, '')
+              AND style_name = ?
+            """,
+            (summary, model_name, prompt_text, content_hash, prompt_path, image_path, source_name, title, published_at, style_name),
+        )
+
+def _enrich_inserted_article(
+    article: Any,
+    style_name: str,
+    style_desc: str,
+    config: dict[str, Any],
+    output_dir: Path,
+    timeout: int,
+    model_name: str,
+) -> None:
+    link = article.link or ""
+    title = article.title or "ללא כותרת"
+    published_at = article.published_at.isoformat() if article.published_at else None
+    enrich_key = _enrich_key(link, style_name, article.source_name, title, published_at)
+    if not _claim_enrich_task(enrich_key):
+        return
+
+    try:
+        source_image_url = getattr(article, "source_image_url", None) or extract_article_page_image(link, min(timeout, 8))
+
+        summary_mode = config.get("summarization", {}).get("mode", "llm")
+        if summary_mode == "llm":
+            summary = llm_summary(article, config, timeout)
+        else:
+            summary = extractive_summary(article)
+
+        prompt = build_image_prompt(article, summary, style_name, style_desc)
+        output_path = generate_image(prompt, article, style_name, config, output_dir, timeout)
+        suffix = output_path.suffix.lower()
+        rel_path = to_storage_relative(output_path)
+        image_path = rel_path if suffix in {".png", ".jpg", ".jpeg", ".webp"} else None
+        prompt_path = rel_path if suffix == ".txt" else None
+
+        if not image_path and source_image_url:
+            image_path = source_image_url
+
+        update_news_item_enrichment(
+            link=link,
+            style_name=style_name,
+            source_name=article.source_name,
+            title=title,
+            published_at=published_at,
+            summary=summary,
+            model_name=model_name,
+            image_path=image_path,
+            prompt_path=prompt_path,
+            prompt_text=prompt,
+        )
+
+        if source_image_url:
+            update_missing_image(link, style_name, article.source_name, title, published_at, source_image_url)
+    except Exception:
+        logger.exception("Background enrichment failed for %s", title)
+    finally:
+        _release_enrich_task(enrich_key)
+
+
+def _schedule_enrichment(
+    article: Any,
+    style_name: str,
+    style_desc: str,
+    config: dict[str, Any],
+    output_dir: Path,
+    timeout: int,
+    model_name: str,
+) -> None:
+    ENRICH_EXECUTOR.submit(
+        _enrich_inserted_article,
+        article,
+        style_name,
+        style_desc,
+        config,
+        output_dir,
+        timeout,
+        model_name,
+    )
 def get_news(
     limit: int = 100,
     category: str | None = None,
@@ -371,7 +615,7 @@ def get_news(
 ) -> list[dict[str, Any]]:
     sql = """
         SELECT id, source_name, title, summary, category, link, published_at, created_at,
-               style_name, model_name, image_path, prompt_path
+               style_name, model_name, image_path, prompt_path, canonical_url, content_hash
         FROM news_items
     """
     where = []
@@ -416,20 +660,62 @@ def get_news(
         if cutoff and sort_dt < cutoff:
             continue
 
+        if item.get("published_at"):
+            item["published_at"] = to_israel_time_iso(item.get("published_at"))
+        if item.get("created_at"):
+            item["created_at"] = to_israel_time_iso(item.get("created_at"))
+
+        published_dt = parse_dt(item.get("published_at")) if item.get("published_at") else datetime.min.replace(tzinfo=UTC)
+        max_future = now + timedelta(minutes=30)
+        if item.get("published_at") and published_dt <= max_future:
+            display_src = item.get("published_at")
+        else:
+            display_src = item.get("created_at") or item.get("published_at")
+        display_date, display_time = israel_date_time_parts(display_src)
+        item["display_date"] = display_date
+        item["display_time"] = display_time
+
         item["sort_dt"] = sort_dt
         items.append(item)
 
     items.sort(key=lambda x: x["sort_dt"], reverse=True)
-    items = items[:limit]
+
+    deduped: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in items:
+        key = item.get("content_hash", "") or normalized_for_compare(item.get("title", ""))
+        if not key:
+            key = "id:" + str(item.get("id", ""))
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(item)
+
+    items = deduped[:limit]
     for item in items:
         item.pop("sort_dt", None)
     return items
-
 
 def count_news() -> int:
     with sqlite3.connect(DB_PATH) as conn:
         row = conn.execute("SELECT COUNT(*) FROM news_items").fetchone()
     return int(row[0]) if row else 0
+
+
+def cleanup_old_news(hours: int = 24) -> int:
+    """Delete news_items older than `hours` based on created_at timestamp.
+
+    Returns the number of rows removed.
+    """
+    cutoff = datetime.now(UTC) - timedelta(hours=hours)
+    cutoff_iso = cutoff.isoformat()
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.execute(
+            "DELETE FROM news_items WHERE created_at < ?",
+            (cutoff_iso,),
+        )
+        return cur.rowcount
+
 
 
 def get_taxonomy() -> dict[str, list[dict[str, str]]]:
@@ -459,6 +745,19 @@ def resolve_style_for_article(config: dict[str, Any], article: Any) -> str:
     return config.get("default_style", "breaking")
 
 
+
+def should_fetch_page_image_now(source: dict[str, Any], article: Any) -> bool:
+    source_url = str(source.get("url", "")).lower()
+    source_name = str(source.get("name", "")).lower()
+    link = str(getattr(article, "link", "") or "").lower()
+
+    if "news.google.com" in source_url or "google news" in source_name:
+        return True
+    if source_url and all(token not in source_url for token in ["/rss", ".xml", "feed"]):
+        return True
+    if link and "news.google.com" in link:
+        return True
+    return False
 def run_generation_cycle() -> dict[str, int]:
     config = load_config(CONFIG_PATH)
     output_dir = resolve_output_dir(config)
@@ -467,6 +766,9 @@ def run_generation_cycle() -> dict[str, int]:
     timeout = int(config.get("timeout_seconds", 20))
     max_items = int(config.get("max_items_per_source", 5))
     model_name = config.get("image", {}).get("model", "")
+    scan_workers = max(2, int(config.get("scan_parallel_workers", 8)))
+    enrich_in_background = bool(config.get("enable_background_enrichment", True))
+
     added = 0
     scanned = 0
 
@@ -481,61 +783,103 @@ def run_generation_cycle() -> dict[str, int]:
         key=lambda s: (priority_categories.get(str(s.get("category", "")).strip(), 100), str(s.get("name", ""))),
     )
 
-    for source in sources:
-        articles = scan_feed(source, max_items)
-        scanned += len(articles)
+    if not sources:
+        return {"scanned": 0, "added": 0}
 
-        for article in articles:
-            style_name = resolve_style_for_article(config, article)
-            style_desc = config["styles"].get(style_name)
-            if not style_desc:
-                style_name = "breaking"
-                style_desc = config["styles"][style_name]
+    workers = min(len(sources), scan_workers)
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        future_map = {
+            executor.submit(scan_feed, source, max_items): source
+            for source in sources
+        }
 
-            link = article.link or ""
-            title = article.title or "ללא כותרת"
-            published_at = article.published_at.isoformat() if article.published_at else None
-            if news_exists(link, style_name, article.source_name, title, published_at):
+        for future in as_completed(future_map):
+            source = future_map[future]
+            source_name = str(source.get("name", source.get("url", "source")))
+            try:
+                articles = future.result()
+            except Exception as exc:
+                logger.warning("Source scan failed: %s (%s)", source_name, exc)
                 continue
 
-            source_image_url = getattr(article, "source_image_url", None) or extract_article_page_image(link, min(timeout, 8))
+            scanned += len(articles)
+            logger.info("Source scanned: %s items=%s", source_name, len(articles))
 
-            summary_mode = config["summarization"]["mode"]
-            if summary_mode == "llm":
-                summary = llm_summary(article, config, timeout)
-            else:
-                summary = extractive_summary(article)
+            for article in articles:
+                style_name = resolve_style_for_article(config, article)
+                style_desc = config["styles"].get(style_name)
+                if not style_desc:
+                    style_name = "breaking"
+                    style_desc = config["styles"][style_name]
 
-            prompt = build_image_prompt(article, summary, style_name, style_desc)
-            output_path = generate_image(prompt, article, style_name, config, output_dir, timeout)
-            suffix = output_path.suffix.lower()
-            rel_path = to_storage_relative(output_path)
-            image_path = rel_path if suffix in {".png", ".jpg", ".jpeg", ".webp"} else None
-            prompt_path = rel_path if suffix == ".txt" else None
-            if not image_path and source_image_url:
-                image_path = source_image_url
+                link = article.link or ""
+                title = article.title or "ללא כותרת"
+                published_at = article.published_at.isoformat() if article.published_at else None
+                canonical_url = canonicalize_url(link)
 
-            inserted = insert_news_item(
-                {
-                    "source_name": article.source_name,
-                    "title": title,
-                    "summary": summary,
-                    "category": article.category,
-                    "link": link,
-                    "published_at": published_at,
-                    "created_at": utc_now_iso(),
-                    "style_name": style_name,
-                    "model_name": model_name,
-                    "image_path": image_path,
-                    "prompt_path": prompt_path,
-                    "prompt_text": prompt,
-                }
-            )
-            if inserted:
+                quick_summary = extractive_summary(article)
+                content_hash = build_content_hash(title, quick_summary)
+
+                if news_exists(
+                    link,
+                    style_name,
+                    article.source_name,
+                    title,
+                    published_at,
+                    canonical_url=canonical_url,
+                    content_hash=content_hash,
+                ):
+                    continue
+
+                quick_image = getattr(article, "source_image_url", None)
+                if not quick_image and should_fetch_page_image_now(source, article):
+                    quick_image = extract_article_page_image(link, min(timeout, 8))
+
+                inserted = insert_news_item(
+                    {
+                        "source_name": article.source_name,
+                        "title": title,
+                        "summary": quick_summary,
+                        "category": article.category,
+                        "link": link,
+                        "published_at": published_at,
+                        "created_at": utc_now_iso(),
+                        "style_name": style_name,
+                        "model_name": model_name,
+                        "image_path": quick_image,
+                        "prompt_path": None,
+                        "canonical_url": canonical_url,
+                        "content_hash": content_hash,
+                        "prompt_text": "",
+                    }
+                )
+                if not inserted:
+                    continue
+
                 added += 1
 
-    return {"scanned": scanned, "added": added}
+                if enrich_in_background:
+                    _schedule_enrichment(
+                        article=article,
+                        style_name=style_name,
+                        style_desc=style_desc,
+                        config=config,
+                        output_dir=output_dir,
+                        timeout=timeout,
+                        model_name=model_name,
+                    )
+                else:
+                    _enrich_inserted_article(
+                        article=article,
+                        style_name=style_name,
+                        style_desc=style_desc,
+                        config=config,
+                        output_dir=output_dir,
+                        timeout=timeout,
+                        model_name=model_name,
+                    )
 
+    return {"scanned": scanned, "added": added}
 
 cycle_lock = threading.Lock()
 
@@ -553,6 +897,51 @@ def safe_cycle() -> None:
         cycle_lock.release()
 
 
+
+def run_html_refresh_cycle(limit: int = 40, timeout: int = 8) -> dict[str, int]:
+    cutoff = (datetime.now(UTC) - timedelta(hours=24)).isoformat()
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """
+            SELECT id, link, image_path
+            FROM news_items
+            WHERE created_at >= ?
+              AND COALESCE(link, '') <> ''
+              AND (image_path IS NULL OR image_path = '')
+            ORDER BY created_at DESC
+            LIMIT ?
+            """,
+            (cutoff, limit),
+        ).fetchall()
+
+        refreshed = 0
+        checked = 0
+        for row in rows:
+            checked += 1
+            link = (row["link"] or "").strip()
+            if not link:
+                continue
+            image_url = extract_article_page_image(link, timeout)
+            if not image_url:
+                continue
+            conn.execute("UPDATE news_items SET image_path = ? WHERE id = ?", (image_url, int(row["id"])))
+            refreshed += 1
+
+    return {"checked": checked, "refreshed": refreshed}
+
+
+def safe_html_refresh() -> None:
+    if not HTML_REFRESH_LOCK.acquire(blocking=False):
+        logger.info("Skipping HTML refresh because previous run is still active")
+        return
+    try:
+        result = run_html_refresh_cycle()
+        logger.info("HTML refresh complete. checked=%s refreshed=%s", result["checked"], result["refreshed"])
+    except Exception:
+        logger.exception("HTML refresh failed")
+    finally:
+        HTML_REFRESH_LOCK.release()
 def should_run_scheduler() -> bool:
     value = os.getenv("RUN_BACKGROUND_WORKER", "1").strip().lower()
     return value in {"1", "true", "yes", "on"}
@@ -637,16 +1026,44 @@ def create_app() -> Flask:
 
     if should_run_scheduler():
         config = load_config(CONFIG_PATH)
-        interval_seconds = int(config.get("scheduler_interval_seconds", 0))
-        if interval_seconds <= 0:
-            interval_seconds = int(config.get("scheduler_interval_minutes", 10)) * 60
+        rss_interval_seconds = int(config.get("rss_interval_seconds", config.get("scheduler_interval_seconds", 30)))
+        if rss_interval_seconds <= 0:
+            rss_interval_seconds = 30
+
+        html_refresh_interval_seconds = int(config.get("html_refresh_interval_seconds", 300))
+        if html_refresh_interval_seconds <= 0:
+            html_refresh_interval_seconds = 300
+
+        retention_hours = int(config.get("retention_hours", 24))
+
+        # Run cleanup once on startup so stale rows do not accumulate after frequent restarts.
+        try:
+            removed_now = cleanup_old_news(retention_hours)
+            logger.info("startup cleanup removed %s rows", removed_now)
+        except Exception:
+            logger.exception("startup cleanup failed")
 
         scheduler = BackgroundScheduler(timezone="UTC")
         scheduler.add_job(
             safe_cycle,
             "interval",
-            seconds=interval_seconds,
+            seconds=rss_interval_seconds,
             id="news_cycle",
+            max_instances=1,
+        )
+        scheduler.add_job(
+            safe_html_refresh,
+            "interval",
+            seconds=html_refresh_interval_seconds,
+            id="news_html_refresh",
+            max_instances=1,
+        )
+        # add cleanup job that runs every hour by default (configurable)
+        scheduler.add_job(
+            lambda: logger.info("cleanup removed %s rows", cleanup_old_news(retention_hours)),
+            "interval",
+            hours=1,
+            id="news_cleanup",
             max_instances=1,
         )
         scheduler.start()
@@ -654,6 +1071,7 @@ def create_app() -> Flask:
         if config.get("run_first_cycle_on_start", True):
             # Run first sync in background so app can start serving immediately.
             threading.Thread(target=safe_cycle, daemon=True).start()
+            threading.Thread(target=safe_html_refresh, daemon=True).start()
 
     @app.route("/")
     def index() -> Any:
@@ -705,6 +1123,53 @@ app = create_app()
 if __name__ == "__main__":
     debug_mode = os.getenv("FLASK_DEBUG", "0").strip().lower() in {"1", "true", "yes", "on"}
     app.run(host="0.0.0.0", port=8080, debug=debug_mode, use_reloader=False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

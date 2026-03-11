@@ -136,7 +136,7 @@
           {% endif %}
           <footer>
             <small>{{ item.source_name }}</small>
-            <small>{{ item.published_at or item.created_at }}</small>
+            <small>{{ item.display_date }}{% if item.display_date and item.display_time %} | {% endif %}{{ item.display_time }}</small>
           </footer>
           <div class="links">
             {% if item.link %}<a href="{{ item.link }}" target="_blank" rel="noopener">לכתבה</a>{% endif %}
@@ -193,10 +193,26 @@
       "\u05e8\u05e2\u05d9\u05d3\u05ea \u05d0\u05d3\u05de\u05d4", "\u05d1\u05d9\u05d8\u05d7", "\u05d9\u05e8\u05d9", "\u05e6\u05d4\"\u05dc"
     ];
 
+    function isHebrewText(value) {
+      return /[\u0590-\u05FF]/.test(String(value || ""));
+    }
+
     function formatTickerTime(value) {
+      const raw = String(value || "").trim();
+      const matchIso = raw.match(/T(\d{2}):(\d{2})/);
+      if (matchIso) return `${matchIso[1]}:${matchIso[2]}`;
+
+      const onlyTime = raw.match(/^(\d{2}):(\d{2})$/);
+      if (onlyTime) return `${onlyTime[1]}:${onlyTime[2]}`;
+
       const d = parseDate(value);
       if (!d) return "--:--";
-      return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", hour12: false });
+      return d.toLocaleTimeString("he-IL", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+        timeZone: "Asia/Jerusalem"
+      });
     }
 
     function isSecurityItem(item) {
@@ -263,22 +279,36 @@
       if (!strip || !track) return;
 
       const sourceItems = [...allItems]
-        .filter(isIsraelGeneralItem)
+        .filter(item => isIsraelGeneralItem(item) && isHebrewText(item.title || item.summary || ""))
         .sort((a, b) => {
           const da = parseDate(a.published_at || a.created_at || "");
           const db = parseDate(b.published_at || b.created_at || "");
           return (db ? db.getTime() : 0) - (da ? da.getTime() : 0);
-        })
-        .slice(0, 10);
+        });
 
-      const line = sourceItems.map(item => {
-        const t = formatTickerTime(item.published_at || item.created_at || "");
+      const seen = new Set();
+      const uniqueItems = [];
+      for (const item of sourceItems) {
+        const normalized = String(item.content_hash || item.title || "")
+          .toLowerCase()
+          .replace(/[^\u0590-\u05FFa-z0-9 ]+/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+        const key = normalized || `${item.id || ""}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        uniqueItems.push(item);
+        if (uniqueItems.length >= 10) break;
+      }
+
+      const line = uniqueItems.map(item => {
+        const t = formatTickerTime(item.display_time || item.published_at || item.created_at || "");
         const raw = String(item.title || "").replace(/\s+/g, " ").trim();
         const title = raw.length > 88 ? `${raw.slice(0, 88)}...` : raw;
         return `[${t}] ${title}`;
       }).join("  •  ") || "אין מבזקים כרגע";
 
-      const sig = sourceItems
+      const sig = uniqueItems
         .map(item => `${item.id || ""}|${item.published_at || item.created_at || ""}|${item.title || ""}`)
         .join(";") || "empty";
 
@@ -315,8 +345,12 @@
         const league = item.league || item.sport || "Sports";
         const status = item.status || (item.is_live ? "LIVE" : "Not started");
         const score = item.score || "-";
-        const row = `[${league}] ${item.home} ${score} ${item.away} (${status})`;
-        return `<div class="security-item"><span class="dot"></span><span>${escapeHtml(row)}</span></div>`;
+        const home = escapeHtml(item.home || "");
+        const away = escapeHtml(item.away || "");
+        const safeLeague = escapeHtml(league);
+        const safeStatus = escapeHtml(status);
+        const safeScore = escapeHtml(score);
+        return `<div class="security-item sports-item"><span class="dot"></span><span class="sports-line-item">${escapeHtml("ליגה")}: ${safeLeague} | ${escapeHtml("בית")}: ${home} | ${escapeHtml("חוץ")}: ${away} | ${escapeHtml("תוצאה")}: ${safeScore} (${safeStatus})</span></div>`;
       }).join("");
 
       listA.innerHTML = rows;
@@ -371,7 +405,8 @@
       const categoryLabel = escapeHtml(item.category_label || item.category || "");
       const styleLabel = escapeHtml(item.style_label || item.style_name || "");
       const sourceName = escapeHtml(item.source_name || "");
-      const dateText = escapeHtml(item.published_at || item.created_at || "");
+      const displayDate = escapeHtml(item.display_date || "");
+      const displayTime = escapeHtml(item.display_time || "");
       const link = item.link || "";
       const promptPath = item.prompt_path || "";
       const imagePath = item.image_path || "";
@@ -398,7 +433,7 @@
               <p>${summary}</p>
               <footer>
                 <small>${sourceName}</small>
-                <small>${dateText}</small>
+                <small>${displayDate}${displayDate && displayTime ? " | " : ""}${displayTime}</small>
               </footer>
               <div class="links">
                 ${link ? `<a href="${escapeHtml(link)}" target="_blank" rel="noopener">לכתבה</a>` : ""}
@@ -559,6 +594,19 @@
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

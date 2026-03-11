@@ -1,6 +1,6 @@
 ﻿{
     "output_dir":  "output",
-    "max_items_per_source": 3,
+    "max_items_per_source":  3,
     "timeout_seconds":  30,
     "scheduler_interval_minutes":  15,
     "scheduler_interval_seconds":  30,
@@ -162,6 +162,46 @@
                         "name":  "Google News Business",
                         "url":  "https://news.google.com/rss/search?q=business+news\u0026hl=en-US\u0026gl=US\u0026ceid=US:en",
                         "category":  "world-economy"
+                    },
+                    {
+                        "name":  "Walla Mivzakim",
+                        "url":  "https://rss.walla.co.il/feed/22",
+                        "category":  "israel-general"
+                    },
+                    {
+                        "name":  "Walla Security",
+                        "url":  "https://rss.walla.co.il/feed/2689",
+                        "category":  "israel-security"
+                    },
+                    {
+                        "name":  "Walla Israel News",
+                        "url":  "https://rss.walla.co.il/feed/1",
+                        "category":  "israel-general"
+                    },
+                    {
+                        "name":  "Mako News",
+                        "url":  "https://rcs.mako.co.il/rss/31750a2610f26110VgnVCM1000005201000aRCRD.xml",
+                        "category":  "israel-general"
+                    },
+                    {
+                        "name":  "Mako Israel",
+                        "url":  "https://rcs.mako.co.il/rss/news-israel.xml",
+                        "category":  "israel-general"
+                    },
+                    {
+                        "name":  "Google News - Maariv",
+                        "url":  "https://news.google.com/rss/search?q=site%3Amaariv.co.il\u0026hl=he\u0026gl=IL\u0026ceid=IL:he",
+                        "category":  "israel-general"
+                    },
+                    {
+                        "name":  "Google News - Israel Hayom",
+                        "url":  "https://news.google.com/rss/search?q=site%3Aisraelhayom.co.il\u0026hl=he\u0026gl=IL\u0026ceid=IL:he",
+                        "category":  "israel-general"
+                    },
+                    {
+                        "name":  "Jerusalem Post Israel RSS",
+                        "url":  "https://www.jpost.com/rss/rssfeedsisraelnews.aspx",
+                        "category":  "israel-general"
                     }
                 ],
     "styles":  {
@@ -184,6 +224,10 @@
                   "quality":  "medium",
                   "endpoint":  "https://api.openai.com/v1/images/generations",
                   "api_key_env":  "OPENAI_API_KEY"
-              }
+              },
+    "scan_parallel_workers":  8,
+    "enable_background_enrichment":  true,
+    "rss_interval_seconds":  30,
+    "html_refresh_interval_seconds":  300,
+    "retention_hours":  24
 }
-
