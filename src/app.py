@@ -988,11 +988,11 @@ def fetch_one_live_scores(limit: int = 20, timeout: int = 12) -> list[dict[str, 
         api_home_score = ((match.get("Home") or {}).get("Score") or {}).get("Match", -1)
         api_away_score = ((match.get("Away") or {}).get("Score") or {}).get("Match", -1)
         # ONE live payload appears reversed in our Hebrew presentation.
-        # Normalize to בית/חוץ order with aligned score values.
-        home = api_home
-        away = api_away
-        home_score = api_home_score
-        away_score = api_away_score
+        # Swap sides so בית/חוץ and score align with the displayed teams.
+        home = api_away
+        away = api_home
+        home_score = api_away_score
+        away_score = api_home_score
         state = ((match.get("TextStates") or {}).get("State") or "").strip()
         minutes = ((match.get("TextStates") or {}).get("MinutesLive") or "").strip()
         sport_type = match.get("SportType", -1)

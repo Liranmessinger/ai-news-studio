@@ -97,7 +97,10 @@
           <button class="chip" data-filter-type="style" data-value="{{ s.value }}">{{ s.label }}</button>
           {% endfor %}
         </div>
-        <div class="view-inline" id="viewRow">
+                <div class="view-inline" id="viewRow">
+          <button class="theme-mobile-btn" id="themeMobileBtn" aria-label="בחירת ערכת צבע" aria-expanded="false" type="button">
+            <span class="palette-glyph" aria-hidden="true"></span>
+          </button>
           <button class="chip view-chip active" data-filter-type="view" data-value="grid" title="תצוגת כרטיסים" aria-label="תצוגת כרטיסים"><span class="view-icon view-grid" aria-hidden="true"></span></button>
           <button class="chip view-chip" data-filter-type="view" data-value="list" title="תצוגת רשימה" aria-label="תצוגת רשימה"><span class="view-icon view-list" aria-hidden="true"></span></button>
         </div>
@@ -671,14 +674,36 @@
         applyFilter();
       });
     });
+    const themeMobileBtn = document.getElementById("themeMobileBtn");
+    const themeRow = document.getElementById("themeRow");
+    function closeThemePicker() {
+      if (!themeRow || !themeMobileBtn) return;
+      themeRow.classList.remove("open");
+      themeMobileBtn.setAttribute("aria-expanded", "false");
+    }
 
     document.querySelectorAll(".theme-chip").forEach(chip => {
       chip.addEventListener("click", () => {
         state.theme = chip.dataset.theme;
         applyTheme();
-
+        closeThemePicker();
       });
     });
+
+    if (themeMobileBtn && themeRow) {
+      themeMobileBtn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const nextOpen = !themeRow.classList.contains("open");
+        themeRow.classList.toggle("open", nextOpen);
+        themeMobileBtn.setAttribute("aria-expanded", nextOpen ? "true" : "false");
+      });
+      document.addEventListener("click", (ev) => {
+        if (!themeRow.classList.contains("open")) return;
+        if (themeRow.contains(ev.target) || themeMobileBtn.contains(ev.target)) return;
+        closeThemePicker();
+      });
+    }
+
     applyTheme();
     applyFilter();
     lastSignature = itemSignature(allItems);
@@ -729,6 +754,12 @@
   </script>
 </body>
 </html>
+
+
+
+
+
+
 
 
 
