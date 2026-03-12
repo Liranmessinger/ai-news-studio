@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>לירן - חדשות ללא הפסקה</title>
-  {% set seo = namespace(description='לירן - חדשות ללא הפסקה: מבזקים וחדשות בזמן אמת מישראל ומהעולם.', image='', headline='לירן - חדשות ללא הפסקה') %}
+  <title>24/7 ניוז | חדשות ללא הפסקה, מבזקים וצ׳אט חי</title>
+  {% set seo = namespace(site_title='24/7 ניוז', site_description='24/7 ניוז - חדשות ללא הפסקה, מבזקים בזמן אמת וצ׳אט קהילתי חי.', description='24/7 ניוז - חדשות ללא הפסקה, מבזקים בזמן אמת וצ׳אט קהילתי חי.', image='', headline='24/7 ניוז') %}
   {% if items and items|length > 0 %}
     {% set seo.headline = items[0].title %}
     {% if items[0].summary %}{% set seo.description = items[0].summary %}{% endif %}
@@ -16,24 +16,28 @@
       {% endif %}
     {% endif %}
   {% endif %}
-  <meta name="description" content="{{ seo.description }}" />
+  <meta name="description" content="{{ seo.site_description }}" />
+  <meta name="keywords" content="חדשות, מבזקים, חדשות ישראל, חדשות בעולם, צ׳אט חדשות, 24/7 ניוז" />
   <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
   <meta name="googlebot" content="index,follow,max-image-preview:large" />
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}" />
+  <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" />
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.ico') }}" />
   <link rel="canonical" href="{{ request.base_url }}" />
   <link rel="alternate" hreflang="he-IL" href="{{ request.base_url }}" />
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="he_IL" />
-  <meta property="og:site_name" content="לירן - חדשות ללא הפסקה" />
-  <meta property="og:title" content="{{ seo.headline }}" />
-  <meta property="og:description" content="{{ seo.description }}" />
+  <meta property="og:site_name" content="{{ seo.site_title }}" />
+  <meta property="og:title" content="{{ seo.site_title }}" />
+  <meta property="og:description" content="{{ seo.site_description }}" />
   <meta property="og:url" content="{{ request.base_url }}" />
   {% if seo.image %}<meta property="og:image" content="{{ seo.image }}" />{% endif %}
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="{{ seo.headline }}" />
-  <meta name="twitter:description" content="{{ seo.description }}" />
+  <meta name="twitter:title" content="{{ seo.site_title }}" />
+  <meta name="twitter:description" content="{{ seo.site_description }}" />
   {% if seo.image %}<meta name="twitter:image" content="{{ seo.image }}" />{% endif %}
-  <script type="application/ld+json">{{ {"@context":"https://schema.org","@type":"NewsMediaOrganization","name":"לירן - חדשות ללא הפסקה","url":request.url_root.rstrip("/"),"inLanguage":"he-IL"}|tojson }}</script>
-  <script type="application/ld+json">{{ {"@context":"https://schema.org","@type":"CollectionPage","name":seo.headline,"description":seo.description,"url":request.base_url,"inLanguage":"he-IL"}|tojson }}</script>
+  <script type="application/ld+json">{{ {"@context":"https://schema.org","@type":"NewsMediaOrganization","name":"24/7 ניוז","url":request.url_root.rstrip("/"),"description":seo.site_description,"inLanguage":"he-IL"}|tojson }}</script>
+  <script type="application/ld+json">{{ {"@context":"https://schema.org","@type":"CollectionPage","name":seo.site_title,"description":seo.site_description,"url":request.base_url,"inLanguage":"he-IL"}|tojson }}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;500;800&display=swap" rel="stylesheet">
@@ -42,7 +46,7 @@
 <body data-theme="ocean">
   <div class="mesh"></div>
 
-    {% set hero = namespace(url='https://storage.googleapis.com/assets_dilush/%D7%91%D7%99%D7%A0%D7%94%20%D7%91%20%D7%A7%D7%9C%D7%99%D7%A7/Assets/hero2.png', headline='לירן - חדשות ללא הפסקה') %}
+    {% set hero = namespace(url='https://storage.googleapis.com/assets_dilush/%D7%91%D7%99%D7%A0%D7%94%20%D7%91%20%D7%A7%D7%9C%D7%99%D7%A7/Assets/hero2.png', headline='24/7 ניוז') %}
   {% for item in items %}
     {% if not hero.url and item.image_path and item.image_path|trim and item.image_path != 'None' %}
       {% if item.image_path.startswith('http') %}
@@ -59,7 +63,7 @@
     <div class="hero-overlay"></div>
     <div class="hero-copy">
       <span class="hero-kicker">LIVE NEWS</span>
-      <h2 id="heroTitle">לירן - חדשות ללא הפסקה</h2>
+      <h2 id="heroTitle">24/7 ניוז</h2>
       <p id="heroHeadline">{{ hero.headline }}</p>
     </div>
   </section>
@@ -182,7 +186,67 @@
         {% endfor %}
       </main>
     </section>
-  </section>  <script>
+  </section>
+
+  <div class="chat-widget pos-br" id="chatWidget">
+    <button class="chat-toggle" id="chatToggle" aria-expanded="false" aria-controls="chatPanel" type="button">💬 צ׳אט חי</button>
+    <section class="chat-panel" id="chatPanel" hidden>
+      <header class="chat-head">
+        <strong>צ׳אט האתר</strong>
+        <div class="chat-head-actions">
+          <button class="chat-mini-btn" id="chatCollapse" type="button" title="צמצום">—</button>
+        </div>
+      </header>
+      <div class="chat-identity">
+        <input class="chat-name-input" id="chatNameInput" type="text" maxlength="24" placeholder="שם לתצוגה" autocomplete="off" />
+        <input class="chat-color-input" id="chatColorInput" type="color" value="#4ea1ff" title="צבע הודעות" />
+        <button class="chat-name-save" id="chatNameSave" type="button">שמור שם</button>
+      </div>
+      <div class="chat-corners" id="chatCorners">
+        <button class="chat-corner-btn" data-chat-pos="br" type="button" title="ימין תחתון">↘</button>
+        <button class="chat-corner-btn" data-chat-pos="bl" type="button" title="שמאל תחתון">↙</button>
+        <button class="chat-corner-btn" data-chat-pos="tr" type="button" title="ימין עליון">↗</button>
+        <button class="chat-corner-btn" data-chat-pos="tl" type="button" title="שמאל עליון">↖</button>
+      </div>
+      <div class="chat-users" id="chatUsers"></div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-meta" id="chatMeta">מחוברים עכשיו: 0</div>
+      <form class="chat-form" id="chatForm">
+        <div class="chat-emoji-panel" id="chatEmojiPanel" hidden></div>
+        <div class="chat-compose">
+          <input class="chat-input" id="chatInput" type="text" maxlength="600" placeholder="כתוב הודעה..." autocomplete="off" required />
+          <button class="chat-emoji-toggle" id="chatEmojiToggle" type="button" title="אמוג׳ים">😊</button>
+          <button class="chat-send" type="submit">שלח</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div class="accessibility-widget" id="a11yWidget">
+    <button class="a11y-fab" id="a11yFab" type="button" aria-label="תפריט נגישות" aria-expanded="false" aria-controls="a11yPanel">👤</button>
+    <section class="a11y-panel" id="a11yPanel" hidden>
+      <header class="a11y-head">
+        <button class="a11y-close" id="a11yClose" type="button" aria-label="סגירה">✕</button>
+        <strong>תפריט נגישות</strong>
+      </header>
+      <div class="a11y-actions">
+        <button class="a11y-toggle" data-a11y-toggle="contrast" type="button"><span>ניגודיות גבוהה</span><span class="a11y-dot"></span></button>
+        <button class="a11y-toggle" data-a11y-toggle="grayscale" type="button"><span>מצב גווני אפור</span><span class="a11y-dot"></span></button>
+        <button class="a11y-toggle" data-a11y-toggle="links" type="button"><span>קו תחתון לקישורים</span><span class="a11y-dot"></span></button>
+        <button class="a11y-toggle" data-a11y-toggle="font" type="button"><span>פונט קריא</span><span class="a11y-dot"></span></button>
+      </div>
+      <div class="a11y-font-size">
+        <div class="a11y-size-label">גודל טקסט</div>
+        <div class="a11y-size-row">
+          <button class="a11y-size-btn" id="a11yFontPlus" type="button" aria-label="הגדלה">+</button>
+          <div class="a11y-size-value" id="a11yFontValue">100%</div>
+          <button class="a11y-size-btn" id="a11yFontMinus" type="button" aria-label="הקטנה">−</button>
+        </div>
+      </div>
+      <button class="a11y-reset" id="a11yReset" type="button">איפוס הגדרות</button>
+    </section>
+  </div>
+  <script>
     const params = new URLSearchParams(location.search);
     const state = {
       category: params.get("category") || "",
@@ -204,6 +268,118 @@
     let breakingRaf = 0;
     let breakingLastTs = 0;
 
+    let chatLastId = 0;
+    let chatInFlight = false;
+    let chatOpen = false;
+    let chatCollapsed = true;
+    let chatPosition = localStorage.getItem("chat_position") || "br";
+    let chatUserColor = localStorage.getItem("chat_user_color") || "#4ea1ff";
+    let chatSessionId = localStorage.getItem("chat_session_id") || "";
+    let chatBlocked = false;
+
+
+    const A11Y_KEY = "a11y_preferences_v1";
+    const a11yState = {
+      contrast: false,
+      grayscale: false,
+      links: false,
+      font: false,
+      fontScale: 100,
+    };
+
+    function loadA11yState() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(A11Y_KEY) || "{}");
+        a11yState.contrast = Boolean(stored.contrast);
+        a11yState.grayscale = Boolean(stored.grayscale);
+        a11yState.links = Boolean(stored.links);
+        a11yState.font = Boolean(stored.font);
+        const scale = Number(stored.fontScale || 100);
+        a11yState.fontScale = Math.min(140, Math.max(80, Number.isFinite(scale) ? scale : 100));
+      } catch (_) {
+      }
+    }
+
+    function saveA11yState() {
+      localStorage.setItem(A11Y_KEY, JSON.stringify(a11yState));
+    }
+
+    function applyA11yState() {
+      document.body.classList.toggle("a11y-contrast", a11yState.contrast);
+      document.body.classList.toggle("a11y-grayscale", a11yState.grayscale);
+      document.body.classList.toggle("a11y-links", a11yState.links);
+      document.body.classList.toggle("a11y-readable", a11yState.font);
+      document.documentElement.style.setProperty("--a11y-font-scale", String(a11yState.fontScale / 100));
+
+      document.querySelectorAll(".a11y-toggle[data-a11y-toggle]").forEach((btn) => {
+        const key = btn.dataset.a11yToggle;
+        btn.classList.toggle("active", Boolean(a11yState[key]));
+      });
+
+      const value = document.getElementById("a11yFontValue");
+      if (value) value.textContent = `${a11yState.fontScale}%`;
+    }
+
+    function initAccessibilityWidget() {
+      loadA11yState();
+      applyA11yState();
+
+      const widget = document.getElementById("a11yWidget");
+      const fab = document.getElementById("a11yFab");
+      const panel = document.getElementById("a11yPanel");
+      const close = document.getElementById("a11yClose");
+      const plus = document.getElementById("a11yFontPlus");
+      const minus = document.getElementById("a11yFontMinus");
+      const reset = document.getElementById("a11yReset");
+      if (!widget || !fab || !panel || !close || !plus || !minus || !reset) return;
+
+      const setOpen = (open) => {
+        panel.hidden = !open;
+        widget.classList.toggle("is-open", open);
+        fab.setAttribute("aria-expanded", open ? "true" : "false");
+      };
+
+      fab.addEventListener("click", () => setOpen(panel.hidden));
+      close.addEventListener("click", () => setOpen(false));
+
+      document.querySelectorAll(".a11y-toggle[data-a11y-toggle]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const key = btn.dataset.a11yToggle;
+          if (!(key in a11yState)) return;
+          a11yState[key] = !a11yState[key];
+          saveA11yState();
+          applyA11yState();
+        });
+      });
+
+      plus.addEventListener("click", () => {
+        a11yState.fontScale = Math.min(140, a11yState.fontScale + 10);
+        saveA11yState();
+        applyA11yState();
+      });
+
+      minus.addEventListener("click", () => {
+        a11yState.fontScale = Math.max(80, a11yState.fontScale - 10);
+        saveA11yState();
+        applyA11yState();
+      });
+
+      reset.addEventListener("click", () => {
+        a11yState.contrast = false;
+        a11yState.grayscale = false;
+        a11yState.links = false;
+        a11yState.font = false;
+        a11yState.fontScale = 100;
+        saveA11yState();
+        applyA11yState();
+      });
+
+      document.addEventListener("click", (ev) => {
+        if (panel.hidden) return;
+        if (widget.contains(ev.target)) return;
+        setOpen(false);
+      });
+    }
     function parseDate(value) {
       if (!value) return null;
       const d = new Date(value);
@@ -217,6 +393,300 @@
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#39;");
+    }
+
+
+    function ensureChatSessionId() {
+      if (!chatSessionId) {
+        chatSessionId = `s_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+        localStorage.setItem("chat_session_id", chatSessionId);
+      }
+      return chatSessionId;
+    }
+
+    function getChatUserName() {
+      const value = String(localStorage.getItem("chat_user_name") || "").trim();
+      return value || "אורח";
+    }
+
+    function setChatUserName(name) {
+      const clean = String(name || "").trim().slice(0, 24);
+      if (!clean) return false;
+      localStorage.setItem("chat_user_name", clean);
+      return true;
+    }
+
+    function getChatUserColor() {
+      const value = String(localStorage.getItem("chat_user_color") || chatUserColor || "#4ea1ff").trim();
+      if (/^#[0-9a-fA-F]{6}$/.test(value)) return value.toLowerCase();
+      return "#4ea1ff";
+    }
+
+    function setChatUserColor(color) {
+      const value = String(color || "").trim();
+      if (!/^#[0-9a-fA-F]{6}$/.test(value)) return false;
+      chatUserColor = value.toLowerCase();
+      localStorage.setItem("chat_user_color", chatUserColor);
+      return true;
+    }
+
+    function applyChatPosition(widget, position) {
+      const pos = ["br", "bl", "tr", "tl"].includes(position) ? position : "br";
+      widget.classList.remove("pos-br", "pos-bl", "pos-tr", "pos-tl");
+      widget.classList.add(`pos-${pos}`);
+      chatPosition = pos;
+      localStorage.setItem("chat_position", pos);
+      document.querySelectorAll(".chat-corner-btn[data-chat-pos]").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.chatPos === pos);
+      });
+    }
+
+    function setChatCollapsed(widget, panel, toggle, collapsed) {
+      chatCollapsed = !!collapsed;
+      widget.classList.toggle("is-collapsed", chatCollapsed);
+      panel.hidden = chatCollapsed;
+      toggle.setAttribute("aria-expanded", chatCollapsed ? "false" : "true");
+      localStorage.setItem("chat_collapsed", chatCollapsed ? "1" : "0");
+    }
+
+    function setChatBlockedState(blocked, message = "") {
+      chatBlocked = !!blocked;
+      const input = document.getElementById("chatInput");
+      const sendBtn = document.querySelector("#chatForm .chat-send");
+      if (input) input.disabled = chatBlocked;
+      if (sendBtn) sendBtn.disabled = chatBlocked;
+      if (chatBlocked && input) {
+        input.placeholder = "הצ׳אט נחסם לסשן הזה";
+      } else if (input) {
+        input.placeholder = "כתוב הודעה...";
+      }
+      if (message) {
+        const meta = document.getElementById("chatMeta");
+        if (meta) meta.textContent = message;
+      }
+    }
+    function renderConnectedUsers(users) {
+      const box = document.getElementById("chatUsers");
+      const meta = document.getElementById("chatMeta");
+      if (!box || !meta) return;
+      const safe = Array.isArray(users) ? users : [];
+      meta.textContent = `מחוברים עכשיו: ${safe.length}`;
+      if (!safe.length) {
+        box.innerHTML = "";
+        return;
+      }
+      box.innerHTML = safe.map(u => {
+        const color = /^#[0-9a-fA-F]{6}$/.test(String(u.user_color || "")) ? u.user_color : "#4ea1ff";
+        return `<span class="chat-user-chip" style="border-color:${escapeHtml(color)};color:${escapeHtml(color)}">${escapeHtml(u.user_name || "אורח")}</span>`;
+      }).join("");
+    }
+
+    function renderChatMessages(items, append = false) {
+      const box = document.getElementById("chatMessages");
+      if (!box) return;
+      const safeItems = Array.isArray(items) ? items : [];
+      if (!append) box.innerHTML = "";
+
+      for (const item of safeItems) {
+        const row = document.createElement("div");
+        row.className = "chat-row";
+        const userColor = /^#[0-9a-fA-F]{6}$/.test(String(item.user_color || "")) ? item.user_color : "#4ea1ff";
+        row.innerHTML = `
+          <div class="chat-user" style="color:${escapeHtml(userColor)}">${escapeHtml(item.user_name || "אורח")}</div>
+          <div class="chat-text">${escapeHtml(item.message || "")}</div>
+          <div class="chat-time">${escapeHtml(item.created_at || "")}</div>
+        `;
+        box.appendChild(row);
+      }
+
+      while (box.children.length > 100) {
+        box.removeChild(box.firstChild);
+      }
+
+      box.scrollTop = box.scrollHeight;
+    }
+
+    async function refreshChat(initial = false) {
+      if (chatInFlight) return;
+      chatInFlight = true;
+      try {
+        const sid = ensureChatSessionId();
+        const userName = getChatUserName();
+        const userColor = getChatUserColor();
+        const base = initial ? `?limit=100` : `?since_id=${encodeURIComponent(String(chatLastId || 0))}&limit=100`;
+        const qs = `${base}&session_id=${encodeURIComponent(sid)}&user_name=${encodeURIComponent(userName)}&user_color=${encodeURIComponent(userColor)}`;
+        const response = await fetch(`/api/chat/messages${qs}`, { cache: "no-store" });
+        if (!response.ok) return;
+        const data = await response.json();
+        const items = Array.isArray(data.items) ? data.items : [];
+        const lastId = Number(data.last_id || 0);
+        if (initial) {
+          renderChatMessages(items, false);
+        } else if (items.length > 0) {
+          renderChatMessages(items, true);
+        }
+        renderConnectedUsers(data.connected_users || []);
+        const blocked = Boolean(data.chat_blocked);
+        const warns = Number(data.chat_warnings || 0);
+        if (blocked) {
+          setChatBlockedState(true, "נחסמת מהצ׳אט בסשן הזה.");
+        } else {
+          setChatBlockedState(false, warns > 0 ? `אזהרות בצ׳אט: ${warns}` : "");
+        }
+        if (lastId > chatLastId) chatLastId = lastId;
+      } catch (_) {
+      } finally {
+        chatInFlight = false;
+      }
+    }
+
+    async function sendChatMessage(message) {
+      const text = String(message || "").trim();
+      if (!text) return { ok: false, error: "empty_message", message: "לא ניתן לשלוח הודעה ריקה." };
+      if (chatBlocked) return { ok: false, error: "chat_blocked", blocked: true, message: "נחסמת מהצ׳אט בסשן הזה." };
+
+      const userName = getChatUserName();
+      const userColor = getChatUserColor();
+      const sessionId = ensureChatSessionId();
+      try {
+        const response = await fetch("/api/chat/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_name: userName,
+            message: text,
+            user_color: userColor,
+            session_id: sessionId,
+          }),
+        });
+
+        const data = await response.json().catch(() => ({}));
+        renderConnectedUsers((data && data.connected_users) || []);
+
+        if (!response.ok) {
+          return {
+            ok: false,
+            error: data.error || "chat_error",
+            message: data.message || "השליחה נכשלה.",
+            blocked: Boolean(data.blocked),
+            warnings: Number(data.chat_warnings || 0),
+          };
+        }
+
+        if (data && data.item) {
+          renderChatMessages([data.item], true);
+          chatLastId = Math.max(chatLastId, Number(data.item.id || 0));
+        }
+
+        return {
+          ok: true,
+          warnings: Number(data.chat_warnings || 0),
+        };
+      } catch (_) {
+        return { ok: false, error: "network_error", message: "שגיאת תקשורת בצ׳אט." };
+      }
+    }
+
+    function initEmojiPanel(input, panel) {
+      const emojis = ["😀","😁","😂","🤣","😊","😍","😘","😎","🤔","🙌","👏","🔥","💯","❤️","👍","👎","⚽","🏀","🇮🇱","🚨"];
+      panel.innerHTML = emojis.map(e => `<button type="button" class="chat-emoji-btn" data-emoji="${e}">${e}</button>`).join("");
+      panel.querySelectorAll(".chat-emoji-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const emoji = btn.dataset.emoji || "";
+          const start = Number.isInteger(input.selectionStart) ? input.selectionStart : input.value.length;
+          const end = Number.isInteger(input.selectionEnd) ? input.selectionEnd : input.value.length;
+          const before = input.value.slice(0, start);
+          const after = input.value.slice(end);
+          input.value = `${before}${emoji}${after}`;
+          const nextPos = before.length + emoji.length;
+          input.focus();
+          input.setSelectionRange(nextPos, nextPos);
+          panel.hidden = true;
+        });
+      });
+    }
+
+    function initChatWidget() {
+      const widget = document.getElementById("chatWidget");
+      const toggle = document.getElementById("chatToggle");
+      const panel = document.getElementById("chatPanel");
+      const collapseBtn = document.getElementById("chatCollapse");
+      const form = document.getElementById("chatForm");
+      const input = document.getElementById("chatInput");
+      const meta = document.getElementById("chatMeta");
+      const nameInput = document.getElementById("chatNameInput");
+      const nameSave = document.getElementById("chatNameSave");
+      const colorInput = document.getElementById("chatColorInput");
+      const emojiToggle = document.getElementById("chatEmojiToggle");
+      const emojiPanel = document.getElementById("chatEmojiPanel");
+      if (!widget || !toggle || !panel || !collapseBtn || !form || !input || !meta || !nameInput || !nameSave || !colorInput || !emojiToggle || !emojiPanel) return;
+
+      ensureChatSessionId();
+      const savedCollapsed = localStorage.getItem("chat_collapsed");
+      const initialCollapsed = savedCollapsed === null ? true : savedCollapsed === "1";
+      applyChatPosition(widget, chatPosition);
+      setChatCollapsed(widget, panel, toggle, initialCollapsed);
+
+      const currentName = getChatUserName();
+      nameInput.value = currentName === "אורח" ? "" : currentName;
+      colorInput.value = getChatUserColor();
+      initEmojiPanel(input, emojiPanel);
+      emojiPanel.hidden = true;
+      toggle.addEventListener("click", () => {
+        setChatCollapsed(widget, panel, toggle, !chatCollapsed);
+        if (!chatCollapsed) {
+          input.focus();
+          refreshChat(false);
+        }
+      });
+
+      collapseBtn.addEventListener("click", () => {
+        setChatCollapsed(widget, panel, toggle, true);
+      });
+
+      document.querySelectorAll(".chat-corner-btn[data-chat-pos]").forEach(btn => {
+        btn.addEventListener("click", () => applyChatPosition(widget, btn.dataset.chatPos || "br"));
+      });
+
+      nameSave.addEventListener("click", () => {
+        if (setChatUserName(nameInput.value)) {
+          meta.textContent = `שם נשמר: ${getChatUserName()}`;
+          refreshChat(false);
+        }
+      });
+
+      colorInput.addEventListener("input", () => {
+        if (setChatUserColor(colorInput.value)) {
+          refreshChat(false);
+        }
+      });
+
+      emojiToggle.addEventListener("click", () => {
+        emojiPanel.hidden = !emojiPanel.hidden;
+      });
+
+      form.addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        if ((!getChatUserName() || getChatUserName() === "אורח") && nameInput.value.trim()) {
+          setChatUserName(nameInput.value);
+        }
+        const result = await sendChatMessage(input.value);
+        if (result.ok) {
+          input.value = "";
+          const warns = Number(result.warnings || 0);
+          meta.textContent = warns > 0 ? `אזהרות בצ׳אט: ${warns}` : "עודכן עכשיו";
+          setChatBlockedState(false);
+        } else {
+          const msg = String(result.message || "השליחה נכשלה.");
+          meta.textContent = msg;
+          if (result.blocked) {
+            setChatBlockedState(true, msg);
+          }
+        }
+      });
+
+      refreshChat(true);
+      setInterval(() => refreshChat(false), 3000);
     }
 
     function itemSignature(items) {
@@ -721,6 +1191,8 @@
       });
     }
 
+    initAccessibilityWidget();
+    initChatWidget();
     applyTheme();
     applyFilter();
     lastSignature = itemSignature(allItems);
@@ -771,6 +1243,41 @@
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

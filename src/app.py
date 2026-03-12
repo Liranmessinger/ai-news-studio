@@ -1,4 +1,5 @@
 ﻿import html
+import json
 import hashlib
 import logging
 import os
@@ -16,6 +17,11 @@ import httpx
 from apscheduler.schedulers.background import BackgroundScheduler
 from dateutil import parser as date_parser
 from flask import Flask, Response, jsonify, render_template, request, send_from_directory
+
+try:
+    import redis
+except Exception:
+    redis = None
 
 from news_image_pipeline import (
     build_image_prompt,
@@ -35,7 +41,7 @@ DEFAULT_HERO_IMAGE_URL = "https://storage.googleapis.com/assets_dilush/%D7%91%D7
 
 CATEGORY_LABELS = {
     "israel-general": "ישראל - כללי",
-    
+
     "israel-politics": "ישראל - פוליטיקה",
     "israel-security": "ישראל - ביטחון",
     "israel-economy": "ישראל - כלכלה",
@@ -73,6 +79,106 @@ ENRICH_INFLIGHT: set[str] = set()
 ENRICH_LOCK = threading.Lock()
 ISRAEL_TZ = ZoneInfo("Asia/Jerusalem")
 HTML_REFRESH_LOCK = threading.Lock()
+NEWS_CLEANUP_LOCK = threading.Lock()
+CHAT_CLEANUP_LOCK = threading.Lock()
+REDIS_LOCK = threading.Lock()
+REDIS_CLIENT: Any | None = None
+REDIS_CONNECT_ATTEMPTED = False
+
+
+def env_int(name: str, default: int, minimum: int) -> int:
+    raw = os.getenv(name, str(default)).strip()
+    try:
+        value = int(raw)
+    except Exception:
+        value = default
+    return max(minimum, value)
+
+
+CACHE_PREFIX = (os.getenv("CACHE_PREFIX", "ainews") or "ainews").strip() or "ainews"
+NEWS_CACHE_TTL_SECONDS = env_int("NEWS_CACHE_TTL_SECONDS", 30, 5)
+TAXONOMY_CACHE_TTL_SECONDS = env_int("TAXONOMY_CACHE_TTL_SECONDS", 300, 30)
+COUNT_CACHE_TTL_SECONDS = env_int("COUNT_CACHE_TTL_SECONDS", 30, 5)
+
+
+def get_redis_client() -> Any | None:
+    global REDIS_CLIENT, REDIS_CONNECT_ATTEMPTED
+
+    redis_url = (os.getenv("REDIS_URL", "") or "").strip()
+    if not redis_url:
+        return None
+    if redis is None:
+        logger.warning("REDIS_URL is set but redis package is not installed")
+        return None
+
+    with REDIS_LOCK:
+        if REDIS_CLIENT is not None:
+            return REDIS_CLIENT
+        if REDIS_CONNECT_ATTEMPTED:
+            return None
+
+        REDIS_CONNECT_ATTEMPTED = True
+        try:
+            client = redis.from_url(redis_url, decode_responses=True)
+            client.ping()
+            REDIS_CLIENT = client
+            logger.info("Redis cache connected")
+        except Exception as exc:
+            logger.warning("Redis connection failed (%s)", exc)
+            REDIS_CLIENT = None
+
+    return REDIS_CLIENT
+
+
+def redis_get_json(key: str) -> Any | None:
+    client = get_redis_client()
+    if client is None:
+        return None
+    try:
+        raw = client.get(key)
+        if not raw:
+            return None
+        return json.loads(raw)
+    except Exception as exc:
+        logger.warning("Redis GET failed for key=%s (%s)", key, exc)
+        return None
+
+
+def redis_set_json(key: str, value: Any, ttl_seconds: int) -> None:
+    client = get_redis_client()
+    if client is None:
+        return
+    try:
+        payload = json.dumps(value, ensure_ascii=False)
+        client.setex(key, int(ttl_seconds), payload)
+    except Exception as exc:
+        logger.warning("Redis SET failed for key=%s (%s)", key, exc)
+
+
+def cache_version(bucket: str) -> int:
+    client = get_redis_client()
+    if client is None:
+        return 1
+    key = f"{CACHE_PREFIX}:version:{bucket}"
+    try:
+        current = client.get(key)
+        if current is None:
+            client.set(key, "1")
+            return 1
+        return max(1, int(current))
+    except Exception:
+        return 1
+
+
+def bump_cache_version(bucket: str) -> None:
+    client = get_redis_client()
+    if client is None:
+        return
+    key = f"{CACHE_PREFIX}:version:{bucket}"
+    try:
+        client.incr(key)
+    except Exception:
+        return
 
 
 def utc_now_iso() -> str:
@@ -142,7 +248,6 @@ def fallback_subtitle(title: str, category: str) -> str:
     if category.startswith("israel"):
         return f"בתמצית: {core}"
     return f"ברקע הדיווח: {core}"
-
 
 def remove_summary_dup(summary: str, title: str, category: str) -> str:
     s = normalize_text(summary)
@@ -240,7 +345,6 @@ def emoji_for_item(category: str, title: str, summary: str) -> str:
     if c.startswith("israel"):
         return "🗞️"
     return "📰"
-
 
 def looks_hebrew(text: str) -> bool:
     return bool(text and any("\u0590" <= ch <= "\u05FF" for ch in text))
@@ -366,6 +470,359 @@ def init_db() -> None:
         conn.execute("CREATE INDEX IF NOT EXISTS idx_news_model ON news_items(model_name)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_news_canonical_url ON news_items(canonical_url)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_news_content_hash ON news_items(content_hash)")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS chat_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_name TEXT NOT NULL,
+                message TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        chat_cols = [r[1] for r in conn.execute("PRAGMA table_info(chat_messages)").fetchall()]
+        if "user_color" not in chat_cols:
+            conn.execute("ALTER TABLE chat_messages ADD COLUMN user_color TEXT NOT NULL DEFAULT '#4ea1ff'")
+        if "ip_address" not in chat_cols:
+            conn.execute("ALTER TABLE chat_messages ADD COLUMN ip_address TEXT NOT NULL DEFAULT ''")
+        if "session_id" not in chat_cols:
+            conn.execute("ALTER TABLE chat_messages ADD COLUMN session_id TEXT NOT NULL DEFAULT ''")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_chat_created_at ON chat_messages(created_at DESC)")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS chat_presence (
+                session_id TEXT PRIMARY KEY,
+                user_name TEXT NOT NULL,
+                user_color TEXT NOT NULL DEFAULT '#4ea1ff',
+                ip_address TEXT NOT NULL DEFAULT '',
+                last_seen TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_chat_presence_seen ON chat_presence(last_seen DESC)")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS chat_moderation (
+                session_id TEXT PRIMARY KEY,
+                warnings INTEGER NOT NULL DEFAULT 0,
+                is_blocked INTEGER NOT NULL DEFAULT 0,
+                last_reason TEXT NOT NULL DEFAULT '',
+                updated_at TEXT NOT NULL,
+                ip_address TEXT NOT NULL DEFAULT ''
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_chat_moderation_blocked ON chat_moderation(is_blocked, updated_at DESC)")
+
+
+def sanitize_chat_name(name: str) -> str:
+    value = normalize_text(name)
+    if not value:
+        return "אורח"
+    value = re.sub(r"[^\w\u0590-\u05ff ._-]", "", value).strip()
+    if not value:
+        return "אורח"
+    return value[:24]
+
+
+def sanitize_chat_message(message: str) -> str:
+    value = normalize_text(message)
+    value = re.sub(r"\s+", " ", value).strip()
+    return value[:600]
+
+
+def sanitize_chat_color(color: str) -> str:
+    value = str(color or "").strip()
+    if re.fullmatch(r"#[0-9a-fA-F]{6}", value):
+        return value.lower()
+    return "#4ea1ff"
+
+
+CHAT_BAD_WORDS_EN = {
+    "fuck", "fucking", "shit", "bitch", "bastard", "asshole", "motherfucker", "dick", "slut", "whore",
+}
+
+CHAT_BAD_WORDS_HE = {
+    "בן זונה", "בת זונה", "זונה", "מזדיין", "מזדיינת", "כוס אמק", "כוסעמק", "כוס אמא", "כוסאמא",
+    "יא בן זונה", "מטומטם", "מטומטמת", "דביל", "דפוק", "שרמוטה", "מניאק", "כלבה", "נאצי",
+}
+
+CHAT_INCITEMENT_TERMS = {
+    "kill", "murder", "burn them", "death to", "rape", "lynch", "shoot them",
+    "להרוג", "לרצוח", "לשרוף", "מוות ל", "לאנוס", "לינץ", "תירו בהם", "שיישרפו",
+}
+
+
+def normalize_chat_text(text: str) -> str:
+    value = normalize_text(text).lower()
+    value = re.sub(r"\s+", " ", value).strip()
+    return value
+
+
+def contains_arabic_text(text: str) -> bool:
+    return bool(re.search(r"[\u0600-\u06FF]", text or ""))
+
+
+def has_forbidden_phrase(text: str, terms: set[str]) -> bool:
+    value = normalize_chat_text(text)
+    if not value:
+        return False
+    for term in terms:
+        t = term.strip().lower()
+        if not t:
+            continue
+        if t in value:
+            return True
+    return False
+
+
+def get_chat_moderation_state(session_id: str) -> dict[str, Any]:
+    sid = str(session_id or "").strip()[:64]
+    if not sid:
+        return {"warnings": 0, "is_blocked": False}
+
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT warnings, is_blocked FROM chat_moderation WHERE session_id = ? LIMIT 1",
+            (sid,),
+        ).fetchone()
+
+    if not row:
+        return {"warnings": 0, "is_blocked": False}
+
+    return {
+        "warnings": int(row["warnings"] or 0),
+        "is_blocked": bool(int(row["is_blocked"] or 0)),
+    }
+
+
+def set_chat_moderation_state(session_id: str, warnings: int, is_blocked: bool, reason: str, ip_address: str) -> None:
+    sid = str(session_id or "").strip()[:64]
+    if not sid:
+        return
+
+    now_iso = utc_now_iso()
+    ip = str(ip_address or "").strip()[:64]
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            """
+            INSERT INTO chat_moderation (session_id, warnings, is_blocked, last_reason, updated_at, ip_address)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(session_id) DO UPDATE SET
+                warnings = excluded.warnings,
+                is_blocked = excluded.is_blocked,
+                last_reason = excluded.last_reason,
+                updated_at = excluded.updated_at,
+                ip_address = excluded.ip_address
+            """,
+            (sid, max(0, int(warnings)), 1 if is_blocked else 0, (reason or "")[:200], now_iso, ip),
+        )
+
+
+def moderate_chat_message(session_id: str, message: str, ip_address: str) -> dict[str, Any]:
+    sid = str(session_id or "").strip()[:64]
+    if not sid:
+        sid = f"ip:{str(ip_address or '').strip()[:48]}"
+
+    state = get_chat_moderation_state(sid)
+    if state["is_blocked"]:
+        return {
+            "allow": False,
+            "error": "chat_blocked",
+            "message": "נחסמת מהצ'אט בסשן הזה בגלל הודעות פוגעניות.",
+            "blocked": True,
+            "warnings": int(state["warnings"]),
+            "session_id": sid,
+        }
+
+    reason = ""
+    value = normalize_chat_text(message)
+    if contains_arabic_text(message):
+        reason = "arabic_text"
+    elif has_forbidden_phrase(value, CHAT_INCITEMENT_TERMS):
+        reason = "incitement"
+    elif has_forbidden_phrase(value, CHAT_BAD_WORDS_HE) or has_forbidden_phrase(value, CHAT_BAD_WORDS_EN):
+        reason = "abusive_language"
+
+    if not reason:
+        return {
+            "allow": True,
+            "blocked": False,
+            "warnings": int(state["warnings"]),
+            "session_id": sid,
+        }
+
+    warnings = int(state["warnings"]) + 1
+    blocked = warnings >= 2
+    set_chat_moderation_state(sid, warnings=warnings, is_blocked=blocked, reason=reason, ip_address=ip_address)
+
+    if blocked:
+        return {
+            "allow": False,
+            "error": "chat_blocked",
+            "message": "נחסמת מהצ'אט בסשן הזה בגלל הודעות פוגעניות.",
+            "blocked": True,
+            "warnings": warnings,
+            "session_id": sid,
+        }
+
+    return {
+        "allow": False,
+        "error": "chat_warning",
+        "message": "ההודעה נחסמה: זוהתה שפה לא הולמת. באזהרה הבאה תיחסם מהצ'אט בסשן זה.",
+        "blocked": False,
+        "warnings": warnings,
+        "session_id": sid,
+    }
+def get_client_ip() -> str:
+    forwarded = (request.headers.get("X-Forwarded-For", "") or "").strip()
+    if forwarded:
+        return forwarded.split(",")[0].strip()[:64]
+    remote = (request.remote_addr or "").strip()
+    return remote[:64]
+
+
+def cleanup_chat_presence(active_seconds: int = 90) -> None:
+    cutoff = (datetime.now(UTC) - timedelta(seconds=max(10, int(active_seconds)))).isoformat()
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("DELETE FROM chat_presence WHERE last_seen < ?", (cutoff,))
+
+
+def upsert_chat_presence(session_id: str, user_name: str, user_color: str, ip_address: str, create_if_missing: bool = True) -> None:
+    sid = str(session_id or "").strip()[:64]
+    if not sid:
+        return
+    name = sanitize_chat_name(user_name)
+    color = sanitize_chat_color(user_color)
+    ip = str(ip_address or "").strip()[:64]
+    now_iso = utc_now_iso()
+
+    with sqlite3.connect(DB_PATH) as conn:
+        if create_if_missing:
+            conn.execute(
+                """
+                INSERT INTO chat_presence (session_id, user_name, user_color, ip_address, last_seen)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(session_id) DO UPDATE SET
+                    user_name = excluded.user_name,
+                    user_color = excluded.user_color,
+                    ip_address = excluded.ip_address,
+                    last_seen = excluded.last_seen
+                """
+                , (sid, name, color, ip, now_iso)
+            )
+        else:
+            conn.execute(
+                """
+                UPDATE chat_presence
+                SET user_name = ?, user_color = ?, ip_address = ?, last_seen = ?
+                WHERE session_id = ?
+                """
+                , (name, color, ip, now_iso, sid)
+            )
+
+def get_connected_chat_users(active_seconds: int = 90) -> list[dict[str, Any]]:
+    cleanup_chat_presence(active_seconds=active_seconds)
+    cutoff = (datetime.now(UTC) - timedelta(seconds=max(10, int(active_seconds)))).isoformat()
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """
+            SELECT session_id, user_name, user_color, ip_address, last_seen
+            FROM chat_presence
+            WHERE last_seen >= ?
+            ORDER BY last_seen DESC
+            """
+            , (cutoff,)
+        ).fetchall()
+
+    users = []
+    seen: set[str] = set()
+    for row in rows:
+        d = dict(row)
+        unique_key = f"{d.get('user_name', '')}|{d.get('ip_address', '')}"
+        if unique_key in seen:
+            continue
+        seen.add(unique_key)
+        users.append({
+            "user_name": d.get("user_name", "אורח"),
+            "user_color": sanitize_chat_color(d.get("user_color", "#4ea1ff")),
+            "ip_address": d.get("ip_address", ""),
+        })
+
+    return users
+
+
+def add_chat_message(user_name: str, message: str, user_color: str, session_id: str, ip_address: str) -> dict[str, Any] | None:
+    name = sanitize_chat_name(user_name)
+    text = sanitize_chat_message(message)
+    color = sanitize_chat_color(user_color)
+    sid = str(session_id or "").strip()[:64]
+    ip = str(ip_address or "").strip()[:64]
+    if not text:
+        return None
+
+    created_at = utc_now_iso()
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.execute(
+            """
+            INSERT INTO chat_messages (user_name, message, created_at, user_color, ip_address, session_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """
+            , (name, text, created_at, color, ip, sid)
+        )
+        new_id = int(cur.lastrowid or 0)
+        conn.execute(
+            "DELETE FROM chat_messages WHERE id NOT IN (SELECT id FROM chat_messages ORDER BY id DESC LIMIT 10)"
+        )
+
+    upsert_chat_presence(sid, name, color, ip)
+    return {
+        "id": new_id,
+        "user_name": name,
+        "message": text,
+        "user_color": color,
+        "created_at": to_israel_time_iso(created_at),
+    }
+
+
+def get_chat_messages(limit: int = 100, since_id: int = 0) -> list[dict[str, Any]]:
+    limit = max(1, min(int(limit), 100))
+    since_id = max(0, int(since_id))
+
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        if since_id > 0:
+            rows = conn.execute(
+                """
+                SELECT id, user_name, message, user_color, created_at
+                FROM chat_messages
+                WHERE id > ?
+                ORDER BY id ASC
+                LIMIT ?
+                """
+                , (since_id, limit)
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """
+                SELECT id, user_name, message, user_color, created_at
+                FROM chat_messages
+                ORDER BY id DESC
+                LIMIT ?
+                """
+                , (limit,)
+            ).fetchall()
+            rows = list(reversed(rows))
+
+    items = []
+    for row in rows:
+        d = dict(row)
+        d["user_color"] = sanitize_chat_color(d.get("user_color", "#4ea1ff"))
+        d["created_at"] = to_israel_time_iso(d.get("created_at"))
+        items.append(d)
+    return items
 
 def news_exists(
     link: str,
@@ -634,6 +1091,12 @@ def get_news(
     style: str | None = None,
     hours: int | None = 24,
 ) -> list[dict[str, Any]]:
+    news_version = cache_version("news")
+    cache_key = f"{CACHE_PREFIX}:news:v{news_version}:limit={int(limit)}:category={category or ''}:style={style or ''}:hours={int(hours or 0)}"
+    cached_items = redis_get_json(cache_key)
+    if isinstance(cached_items, list):
+        return cached_items
+
     sql = """
         SELECT id, source_name, title, summary, category, link, published_at, created_at,
                style_name, model_name, image_path, prompt_path, canonical_url, content_hash
@@ -668,7 +1131,7 @@ def get_news(
             item.get("title", ""),
             item.get("category", ""),
         )
-        item["summary"] = re.sub(r"^דגל ישראל\s*", "", item.get("summary", "")).strip()
+        item["summary"] = re.sub(r"^🇮🇱\s*", "", item.get("summary", "")).strip()
         item["title"] = hebrew_title_from_summary(item.get("title", ""), item.get("summary", ""))
         emoji = emoji_for_item(item.get("category", ""), item.get("title", ""), item.get("summary", ""))
         if item.get("summary") and not item["summary"].startswith(emoji):
@@ -715,31 +1178,142 @@ def get_news(
     items = deduped[:limit]
     for item in items:
         item.pop("sort_dt", None)
+
+    redis_set_json(cache_key, items, NEWS_CACHE_TTL_SECONDS)
     return items
 
 def count_news() -> int:
+    count_version = cache_version("count")
+    cache_key = f"{CACHE_PREFIX}:count:v{count_version}"
+    cached_count = redis_get_json(cache_key)
+    if isinstance(cached_count, int):
+        return cached_count
+
     with sqlite3.connect(DB_PATH) as conn:
         row = conn.execute("SELECT COUNT(*) FROM news_items").fetchone()
-    return int(row[0]) if row else 0
+    total = int(row[0]) if row else 0
+    redis_set_json(cache_key, total, COUNT_CACHE_TTL_SECONDS)
+    return total
 
-
-def cleanup_old_news(hours: int = 24) -> int:
-    """Delete news_items older than `hours` based on created_at timestamp.
-
-    Returns the number of rows removed.
-    """
+def cleanup_old_news(hours: int = 24, output_dir: Path | None = None) -> dict[str, int]:
+    """Delete stale DB rows and generated image files older than `hours`."""
     cutoff = datetime.now(UTC) - timedelta(hours=hours)
     cutoff_iso = cutoff.isoformat()
+    removed_files = 0
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.execute(
             "DELETE FROM news_items WHERE created_at < ?",
             (cutoff_iso,),
         )
-        return cur.rowcount
+        removed_rows = int(cur.rowcount or 0)
+
+    target_dir = output_dir if output_dir is not None else (STORAGE_DIR / "output")
+    try:
+        target_dir = Path(target_dir).resolve()
+    except Exception:
+        target_dir = STORAGE_DIR / "output"
+
+    image_suffixes = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+    if target_dir.exists() and target_dir.is_dir():
+        for file_path in target_dir.iterdir():
+            if not file_path.is_file():
+                continue
+            if file_path.suffix.lower() not in image_suffixes:
+                continue
+            try:
+                modified = datetime.fromtimestamp(file_path.stat().st_mtime, tz=UTC)
+                if modified < cutoff:
+                    file_path.unlink(missing_ok=True)
+                    removed_files += 1
+            except Exception as exc:
+                logger.warning("cleanup skipped file %s (%s)", file_path, exc)
+
+    if removed_rows > 0:
+        bump_cache_version("news")
+        bump_cache_version("taxonomy")
+        bump_cache_version("count")
+
+    return {"rows": removed_rows, "files": removed_files}
 
 
+def run_chat_cleanup(retention_minutes: int = 10, max_messages: int = 10) -> dict[str, int]:
+    retention_minutes = max(1, int(retention_minutes))
+    max_messages = max(1, int(max_messages))
 
+    cutoff_iso = (datetime.now(UTC) - timedelta(minutes=retention_minutes)).isoformat()
+    deleted_old = 0
+    deleted_overflow = 0
+    deleted_presence = 0
+
+    with sqlite3.connect(DB_PATH) as conn:
+        cur_old = conn.execute(
+            "DELETE FROM chat_messages WHERE created_at < ?",
+            (cutoff_iso,),
+        )
+        deleted_old = int(cur_old.rowcount or 0)
+
+        cur_overflow = conn.execute(
+            "DELETE FROM chat_messages WHERE id NOT IN (SELECT id FROM chat_messages ORDER BY id DESC LIMIT ?)",
+            (max_messages,),
+        )
+        deleted_overflow = int(cur_overflow.rowcount or 0)
+
+        cur_presence = conn.execute(
+            "DELETE FROM chat_presence WHERE last_seen < ?",
+            (cutoff_iso,),
+        )
+        deleted_presence = int(cur_presence.rowcount or 0)
+
+    total_deleted = deleted_old + deleted_overflow
+    return {
+        "deleted_old": deleted_old,
+        "deleted_overflow": deleted_overflow,
+        "deleted_presence": deleted_presence,
+        "deleted_total": total_deleted,
+    }
+
+
+def safe_news_cleanup(hours: int, output_dir: Path | None = None) -> dict[str, int]:
+    if not NEWS_CLEANUP_LOCK.acquire(blocking=False):
+        logger.info("Skipping news cleanup because previous run is still active")
+        return {"rows": 0, "files": 0}
+    try:
+        result = cleanup_old_news(hours=hours, output_dir=output_dir)
+        logger.info("News cleanup complete. rows=%s files=%s", result.get("rows", 0), result.get("files", 0))
+        return result
+    except Exception:
+        logger.exception("News cleanup failed")
+        return {"rows": 0, "files": 0}
+    finally:
+        NEWS_CLEANUP_LOCK.release()
+
+
+def safe_chat_cleanup(retention_minutes: int = 10, max_messages: int = 10) -> dict[str, int]:
+    if not CHAT_CLEANUP_LOCK.acquire(blocking=False):
+        logger.info("Skipping chat cleanup because previous run is still active")
+        return {"deleted_total": 0, "deleted_old": 0, "deleted_overflow": 0, "deleted_presence": 0}
+    try:
+        result = run_chat_cleanup(retention_minutes=retention_minutes, max_messages=max_messages)
+        logger.info(
+            "Chat cleanup complete. deleted_total=%s old=%s overflow=%s presence=%s",
+            result.get("deleted_total", 0),
+            result.get("deleted_old", 0),
+            result.get("deleted_overflow", 0),
+            result.get("deleted_presence", 0),
+        )
+        return result
+    except Exception:
+        logger.exception("Chat cleanup failed")
+        return {"deleted_total": 0, "deleted_old": 0, "deleted_overflow": 0, "deleted_presence": 0}
+    finally:
+        CHAT_CLEANUP_LOCK.release()
 def get_taxonomy() -> dict[str, list[dict[str, str]]]:
+    taxonomy_version = cache_version("taxonomy")
+    cache_key = f"{CACHE_PREFIX}:taxonomy:v{taxonomy_version}"
+    cached_taxonomy = redis_get_json(cache_key)
+    if isinstance(cached_taxonomy, dict):
+        return cached_taxonomy
+
     cfg = load_config(CONFIG_PATH)
     cfg_categories = [s.get("category", "") for s in cfg.get("sources", []) if s.get("category")]
     cfg_styles = list(cfg.get("styles", {}).keys())
@@ -753,8 +1327,9 @@ def get_taxonomy() -> dict[str, list[dict[str, str]]]:
 
     categories = [{"value": c, "label": category_label(c)} for c in raw_categories]
     styles = [{"value": s, "label": style_label(s)} for s in raw_styles]
-    return {"categories": categories, "styles": styles}
-
+    payload = {"categories": categories, "styles": styles}
+    redis_set_json(cache_key, payload, TAXONOMY_CACHE_TTL_SECONDS)
+    return payload
 
 def resolve_style_for_article(config: dict[str, Any], article: Any) -> str:
     source_style_map = config.get("source_style_map", {})
@@ -900,6 +1475,11 @@ def run_generation_cycle() -> dict[str, int]:
                         model_name=model_name,
                     )
 
+    if added > 0:
+        bump_cache_version("news")
+        bump_cache_version("taxonomy")
+        bump_cache_version("count")
+
     return {"scanned": scanned, "added": added}
 
 cycle_lock = threading.Lock()
@@ -948,6 +1528,9 @@ def run_html_refresh_cycle(limit: int = 40, timeout: int = 8) -> dict[str, int]:
                 continue
             conn.execute("UPDATE news_items SET image_path = ? WHERE id = ?", (image_url, int(row["id"])))
             refreshed += 1
+
+    if refreshed > 0:
+        bump_cache_version("news")
 
     return {"checked": checked, "refreshed": refreshed}
 
@@ -1001,6 +1584,12 @@ def fetch_one_live_scores(limit: int = 20, timeout: int = 12) -> list[dict[str, 
         start_time = match.get("DateStart") or ""
 
         score_text = "-" if int(home_score) < 0 or int(away_score) < 0 else f"{home_score}:{away_score}"
+        if ":" in score_text:
+            left, right = score_text.split(":", 1)
+            left = left.strip()
+            right = right.strip()
+            if left.isdigit() and right.isdigit():
+                score_text = f"{right}:{left}"
         status_parts = [x for x in [state, minutes] if x]
         status_text = " | ".join(status_parts) if status_parts else ("LIVE" if is_live else "Not started")
 
@@ -1053,6 +1642,8 @@ def create_app() -> Flask:
 
     if should_run_scheduler():
         config = load_config(CONFIG_PATH)
+        output_dir = resolve_output_dir(config)
+
         rss_interval_seconds = int(config.get("rss_interval_seconds", config.get("scheduler_interval_seconds", 30)))
         if rss_interval_seconds <= 0:
             rss_interval_seconds = 30
@@ -1063,12 +1654,21 @@ def create_app() -> Flask:
 
         retention_hours = int(config.get("retention_hours", 24))
 
+        chat_cleanup_interval_seconds = int(config.get("chat_cleanup_interval_seconds", 600))
+        if chat_cleanup_interval_seconds <= 0:
+            chat_cleanup_interval_seconds = 600
+
+        chat_retention_minutes = int(config.get("chat_retention_minutes", 10))
+        if chat_retention_minutes <= 0:
+            chat_retention_minutes = 10
+
+        chat_max_messages = int(config.get("chat_max_messages", 10))
+        if chat_max_messages <= 0:
+            chat_max_messages = 10
+
         # Run cleanup once on startup so stale rows do not accumulate after frequent restarts.
-        try:
-            removed_now = cleanup_old_news(retention_hours)
-            logger.info("startup cleanup removed %s rows", removed_now)
-        except Exception:
-            logger.exception("startup cleanup failed")
+        safe_news_cleanup(retention_hours, output_dir=output_dir)
+        safe_chat_cleanup(retention_minutes=chat_retention_minutes, max_messages=chat_max_messages)
 
         scheduler = BackgroundScheduler(timezone="UTC")
         scheduler.add_job(
@@ -1085,12 +1685,18 @@ def create_app() -> Flask:
             id="news_html_refresh",
             max_instances=1,
         )
-        # add cleanup job that runs every hour by default (configurable)
         scheduler.add_job(
-            lambda: logger.info("cleanup removed %s rows", cleanup_old_news(retention_hours)),
+            lambda: safe_news_cleanup(retention_hours, output_dir=output_dir),
             "interval",
             hours=1,
             id="news_cleanup",
+            max_instances=1,
+        )
+        scheduler.add_job(
+            lambda: safe_chat_cleanup(retention_minutes=chat_retention_minutes, max_messages=chat_max_messages),
+            "interval",
+            seconds=chat_cleanup_interval_seconds,
+            id="chat_cleanup",
             max_instances=1,
         )
         scheduler.start()
@@ -1131,6 +1737,86 @@ def create_app() -> Flask:
         limit = max(1, min(limit, 40))
         items = get_live_sports(limit=limit)
         return jsonify({"items": items, "count": len(items), "provider": "ONE"})
+
+
+    @app.route("/api/chat/messages", methods=["GET"])
+    def api_chat_messages() -> Any:
+        limit_raw = request.args.get("limit", "100").strip()
+        since_raw = request.args.get("since_id", "0").strip()
+        session_id = str(request.args.get("session_id", "")).strip()[:64]
+        user_name = str(request.args.get("user_name", "")).strip()
+        user_color = str(request.args.get("user_color", "")).strip()
+        try:
+            limit = int(limit_raw)
+        except Exception:
+            limit = 100
+        try:
+            since_id = int(since_raw)
+        except Exception:
+            since_id = 0
+
+        client_ip = get_client_ip()
+        effective_session_id = session_id or f"ip:{client_ip[:48]}"
+        if session_id:
+            upsert_chat_presence(session_id, user_name or "אורח", user_color or "#4ea1ff", client_ip, create_if_missing=False)
+
+        moderation_state = get_chat_moderation_state(effective_session_id)
+        items = get_chat_messages(limit=limit, since_id=since_id)
+        connected_users = get_connected_chat_users(active_seconds=90)
+        last_id = items[-1]["id"] if items else since_id
+        return jsonify({
+            "items": items,
+            "count": len(items),
+            "last_id": last_id,
+            "connected_count": len(connected_users),
+            "connected_users": connected_users,
+            "chat_blocked": bool(moderation_state.get("is_blocked", False)),
+            "chat_warnings": int(moderation_state.get("warnings", 0)),
+        })
+
+
+    @app.route("/api/chat/messages", methods=["POST"])
+    def api_chat_post_message() -> Any:
+        payload = request.get_json(silent=True) or {}
+        user_name = str(payload.get("user_name", "")).strip()
+        message = str(payload.get("message", "")).strip()
+        user_color = str(payload.get("user_color", "")).strip()
+        session_id = str(payload.get("session_id", "")).strip()[:64]
+        client_ip = get_client_ip()
+
+        moderation = moderate_chat_message(session_id, message, client_ip)
+        if not moderation.get("allow", False):
+            connected_users = get_connected_chat_users(active_seconds=90)
+            status_code = 403 if moderation.get("blocked", False) else 400
+            return jsonify({
+                "ok": False,
+                "error": moderation.get("error", "chat_moderation"),
+                "message": moderation.get("message", "ההודעה נחסמה."),
+                "blocked": bool(moderation.get("blocked", False)),
+                "chat_warnings": int(moderation.get("warnings", 0)),
+                "connected_count": len(connected_users),
+                "connected_users": connected_users,
+            }), status_code
+
+        effective_session_id = str(moderation.get("session_id") or session_id).strip()[:64]
+        created = add_chat_message(
+            user_name=user_name,
+            message=message,
+            user_color=user_color,
+            session_id=effective_session_id,
+            ip_address=client_ip,
+        )
+        if not created:
+            return jsonify({"ok": False, "error": "empty_message", "message": "לא ניתן לשלוח הודעה ריקה."}), 400
+        connected_users = get_connected_chat_users(active_seconds=90)
+        return jsonify({
+            "ok": True,
+            "item": created,
+            "connected_count": len(connected_users),
+            "connected_users": connected_users,
+            "chat_blocked": False,
+            "chat_warnings": int(moderation.get("warnings", 0)),
+        })
 
     @app.route("/api/trigger", methods=["POST"])
     def trigger() -> Any:
@@ -1194,6 +1880,23 @@ app = create_app()
 if __name__ == "__main__":
     debug_mode = os.getenv("FLASK_DEBUG", "0").strip().lower() in {"1", "true", "yes", "on"}
     app.run(host="0.0.0.0", port=8080, debug=debug_mode, use_reloader=False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

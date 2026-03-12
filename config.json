@@ -8,6 +8,7 @@
     "default_style":  "breaking",
     "source_style_map":  {
                              "Calcalist":  "finance",
+                             "Globes Economy":  "finance",
                              "Reuters Business":  "finance",
                              "Reuters Technology":  "tech",
                              "BBC Technology":  "tech",
@@ -41,6 +42,11 @@
                     {
                         "name":  "Calcalist",
                         "url":  "https://www.calcalist.co.il/GeneralRSS/0,16335,L-8,00.xml",
+                        "category":  "israel-economy"
+                    },
+                    {
+                        "name":  "Globes Economy",
+                        "url":  "https://www.globes.co.il/webservice/rss/rssfeeder.asmx/FeederNode?iID=1225",
                         "category":  "israel-economy"
                     },
                     {
@@ -231,3 +237,6 @@
     "html_refresh_interval_seconds":  300,
     "retention_hours":  24
 }
+
+
+
