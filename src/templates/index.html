@@ -1,7 +1,14 @@
 ﻿<!doctype html>
 <html lang="he" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-THCMHPDVZK"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-THCMHPDVZK');
+  </script>  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>24/7 ניוז | חדשות ללא הפסקה, מבזקים וצ׳אט חי</title>
   {% set seo = namespace(site_title='24/7 ניוז', site_description='24/7 ניוז - חדשות ללא הפסקה, מבזקים בזמן אמת וצ׳אט קהילתי חי.', description='24/7 ניוז - חדשות ללא הפסקה, מבזקים בזמן אמת וצ׳אט קהילתי חי.', image='', headline='24/7 ניוז') %}
@@ -41,7 +48,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;500;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}?v=20260312-filters-center-2" />
 </head>
 <body data-theme="ocean">
   <div class="mesh"></div>
@@ -1243,6 +1250,10 @@
   </script>
 </body>
 </html>
+
+
+
+
 
 
 

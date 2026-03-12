@@ -2229,3 +2229,138 @@ body[data-theme="white"] { --chat-scroll-thumb: #2d7bff; --chat-scroll-track: rg
 .chat-messages::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, color-mix(in srgb, var(--chat-scroll-thumb) 64%, #ffffff 36%), var(--chat-scroll-thumb));
 }
+
+/* Final filters alignment: mobile + tablet only (keep desktop untouched) */
+@media (max-width: 1200px) {
+  .quick-filters {
+    width: 100% !important;
+    display: grid !important;
+    gap: 8px !important;
+    justify-items: stretch !important;
+  }
+
+  .hours-theme-row,
+  .style-view-row,
+  #hoursRow,
+  #categoryRow,
+  #styleRow,
+  #viewRow,
+  .view-inline,
+  #themeRow,
+  #themeRow.open {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-inline: auto !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: color-mix(in srgb, var(--accent) 68%, #ffffff 20%) color-mix(in srgb, var(--panel) 72%, transparent) !important;
+    padding-bottom: 4px !important;
+  }
+
+  #hoursRow .chip,
+  #categoryRow .chip,
+  #styleRow .chip,
+  #viewRow .chip,
+  #viewRow .theme-mobile-btn,
+  #themeRow .theme-chip,
+  .view-inline .chip,
+  .view-inline .theme-mobile-btn {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+  }
+
+  .hours-theme-row::-webkit-scrollbar,
+  .style-view-row::-webkit-scrollbar,
+  #hoursRow::-webkit-scrollbar,
+  #categoryRow::-webkit-scrollbar,
+  #styleRow::-webkit-scrollbar,
+  #viewRow::-webkit-scrollbar,
+  #themeRow::-webkit-scrollbar,
+  #themeRow.open::-webkit-scrollbar,
+  .view-inline::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .hours-theme-row::-webkit-scrollbar-track,
+  .style-view-row::-webkit-scrollbar-track,
+  #hoursRow::-webkit-scrollbar-track,
+  #categoryRow::-webkit-scrollbar-track,
+  #styleRow::-webkit-scrollbar-track,
+  #viewRow::-webkit-scrollbar-track,
+  #themeRow::-webkit-scrollbar-track,
+  #themeRow.open::-webkit-scrollbar-track,
+  .view-inline::-webkit-scrollbar-track {
+    background: color-mix(in srgb, var(--panel) 76%, transparent);
+    border-radius: 999px;
+  }
+
+  .hours-theme-row::-webkit-scrollbar-thumb,
+  .style-view-row::-webkit-scrollbar-thumb,
+  #hoursRow::-webkit-scrollbar-thumb,
+  #categoryRow::-webkit-scrollbar-thumb,
+  #styleRow::-webkit-scrollbar-thumb,
+  #viewRow::-webkit-scrollbar-thumb,
+  #themeRow::-webkit-scrollbar-thumb,
+  #themeRow.open::-webkit-scrollbar-thumb,
+  .view-inline::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent-2) 60%, #ffffff 14%), color-mix(in srgb, var(--accent) 75%, transparent));
+    border-radius: 999px;
+  }
+}
+
+/* Mobile/tablet theme row behavior: hidden by default, open from row 4 button */
+@media (max-width: 1200px) {
+  #themeRow {
+    display: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-inline: auto !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    flex-wrap: nowrap !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 8px !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 4px !important;
+  }
+
+  #themeRow.open {
+    display: flex !important;
+  }
+
+  #themeRow .theme-chip {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+  }
+
+  #themeRow::-webkit-scrollbar,
+  #themeRow.open::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  #themeRow::-webkit-scrollbar-track,
+  #themeRow.open::-webkit-scrollbar-track {
+    background: color-mix(in srgb, var(--panel) 76%, transparent);
+    border-radius: 999px;
+  }
+
+  #themeRow::-webkit-scrollbar-thumb,
+  #themeRow.open::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent-2) 60%, #ffffff 14%), color-mix(in srgb, var(--accent) 75%, transparent));
+    border-radius: 999px;
+  }
+
+  #viewRow .theme-mobile-btn,
+  .view-inline .theme-mobile-btn {
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
+  }
+}
