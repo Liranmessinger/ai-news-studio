@@ -99,6 +99,13 @@ CACHE_PREFIX = (os.getenv("CACHE_PREFIX", "ainews") or "ainews").strip() or "ain
 NEWS_CACHE_TTL_SECONDS = env_int("NEWS_CACHE_TTL_SECONDS", 30, 5)
 TAXONOMY_CACHE_TTL_SECONDS = env_int("TAXONOMY_CACHE_TTL_SECONDS", 300, 30)
 COUNT_CACHE_TTL_SECONDS = env_int("COUNT_CACHE_TTL_SECONDS", 30, 5)
+CHAT_REDIS_MAX_MESSAGES = env_int("CHAT_REDIS_MAX_MESSAGES", 300, 20)
+CHAT_REDIS_SCAN_LIMIT = env_int("CHAT_REDIS_SCAN_LIMIT", 500, 50)
+CHAT_ACTIVE_SECONDS = env_int("CHAT_ACTIVE_SECONDS", 600, 60)
+
+CHAT_MESSAGES_KEY = f"{CACHE_PREFIX}:chat:messages"
+CHAT_PRESENCE_ZSET_KEY = f"{CACHE_PREFIX}:chat:presence:z"
+CHAT_PRESENCE_DATA_KEY = f"{CACHE_PREFIX}:chat:presence:data"
 
 
 def get_redis_client() -> Any | None:
@@ -181,6 +188,216 @@ def bump_cache_version(bucket: str) -> None:
         return
 
 
+
+def redis_chat_push_message(item: dict[str, Any]) -> None:
+    client = get_redis_client()
+    if client is None:
+        return
+    try:
+        payload = json.dumps(item, ensure_ascii=False)
+        with client.pipeline() as pipe:
+            pipe.lpush(CHAT_MESSAGES_KEY, payload)
+            pipe.ltrim(CHAT_MESSAGES_KEY, 0, int(CHAT_REDIS_MAX_MESSAGES) - 1)
+            pipe.execute()
+    except Exception as exc:
+        logger.warning("Redis chat push failed (%s)", exc)
+
+
+def redis_chat_get_messages(limit: int = 100, since_id: int = 0) -> list[dict[str, Any]] | None:
+    client = get_redis_client()
+    if client is None:
+        return None
+    try:
+        take = int(limit) if since_id <= 0 else int(CHAT_REDIS_SCAN_LIMIT)
+        take = max(1, min(take, int(CHAT_REDIS_SCAN_LIMIT)))
+        rows = client.lrange(CHAT_MESSAGES_KEY, 0, take - 1)
+        if not rows:
+            return []
+
+        parsed: list[dict[str, Any]] = []
+        for raw in rows:
+            try:
+                d = json.loads(raw)
+            except Exception:
+                continue
+            if not isinstance(d, dict):
+                continue
+            try:
+                msg_id = int(d.get("id", 0))
+            except Exception:
+                msg_id = 0
+            if since_id > 0 and msg_id <= since_id:
+                continue
+            d["id"] = msg_id
+            parsed.append(d)
+
+        if since_id > 0:
+            parsed.sort(key=lambda x: int(x.get("id", 0)))
+            return parsed[:limit]
+
+        parsed = parsed[:limit]
+        parsed.reverse()
+        return parsed
+    except Exception as exc:
+        logger.warning("Redis chat read failed (%s)", exc)
+        return None
+
+
+def redis_chat_cleanup_presence(active_seconds: int = CHAT_ACTIVE_SECONDS) -> None:
+    client = get_redis_client()
+    if client is None:
+        return
+    cutoff_ts = datetime.now(UTC).timestamp() - max(10, int(active_seconds))
+    try:
+        stale_ids = client.zrangebyscore(CHAT_PRESENCE_ZSET_KEY, 0, cutoff_ts)
+        with client.pipeline() as pipe:
+            pipe.zremrangebyscore(CHAT_PRESENCE_ZSET_KEY, 0, cutoff_ts)
+            if stale_ids:
+                pipe.hdel(CHAT_PRESENCE_DATA_KEY, *stale_ids)
+            pipe.execute()
+    except Exception as exc:
+        logger.warning("Redis chat presence cleanup failed (%s)", exc)
+
+
+def redis_chat_upsert_presence(session_id: str, user_name: str, user_color: str, ip_address: str) -> None:
+    client = get_redis_client()
+    if client is None:
+        return
+    sid = str(session_id or "").strip()[:64]
+    if not sid:
+        return
+    payload = {
+        "session_id": sid,
+        "user_name": sanitize_chat_name(user_name),
+        "user_color": sanitize_chat_color(user_color),
+        "ip_address": str(ip_address or "").strip()[:64],
+        "last_seen": utc_now_iso(),
+    }
+    score = datetime.now(UTC).timestamp()
+    try:
+        encoded = json.dumps(payload, ensure_ascii=False)
+        with client.pipeline() as pipe:
+            pipe.zadd(CHAT_PRESENCE_ZSET_KEY, {sid: score})
+            pipe.hset(CHAT_PRESENCE_DATA_KEY, sid, encoded)
+            pipe.execute()
+    except Exception as exc:
+        logger.warning("Redis chat presence upsert failed (%s)", exc)
+
+
+def redis_chat_get_connected_users(active_seconds: int = CHAT_ACTIVE_SECONDS) -> list[dict[str, Any]] | None:
+    client = get_redis_client()
+    if client is None:
+        return None
+    redis_chat_cleanup_presence(active_seconds=active_seconds)
+    cutoff_ts = datetime.now(UTC).timestamp() - max(10, int(active_seconds))
+    try:
+        sids = client.zrevrangebyscore(CHAT_PRESENCE_ZSET_KEY, "+inf", cutoff_ts, start=0, num=300)
+        if not sids:
+            return []
+        raw_users = client.hmget(CHAT_PRESENCE_DATA_KEY, sids)
+    except Exception as exc:
+        logger.warning("Redis chat presence read failed (%s)", exc)
+        return None
+
+    users: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for raw in raw_users:
+        if not raw:
+            continue
+        try:
+            d = json.loads(raw)
+        except Exception:
+            continue
+        if not isinstance(d, dict):
+            continue
+        user_name = sanitize_chat_name(d.get("user_name", "אורח"))
+        user_color = sanitize_chat_color(d.get("user_color", "#4ea1ff"))
+        ip = str(d.get("ip_address", "")).strip()[:64]
+        unique_key = f"{user_name}|{ip}"
+        if unique_key in seen:
+            continue
+        seen.add(unique_key)
+        users.append({
+            "user_name": user_name,
+            "user_color": user_color,
+            "ip_address": ip,
+        })
+    return users
+
+
+def warm_redis_chat_from_db(max_messages: int = CHAT_REDIS_MAX_MESSAGES, active_seconds: int = CHAT_ACTIVE_SECONDS) -> None:
+    client = get_redis_client()
+    if client is None:
+        return
+    try:
+        has_messages = int(client.llen(CHAT_MESSAGES_KEY) or 0) > 0
+        has_presence = int(client.zcard(CHAT_PRESENCE_ZSET_KEY) or 0) > 0
+        if has_messages and has_presence:
+            return
+    except Exception:
+        return
+
+    msg_rows: list[dict[str, Any]] = []
+    presence_rows: list[dict[str, Any]] = []
+    cutoff_iso = (datetime.now(UTC) - timedelta(seconds=max(10, int(active_seconds)))).isoformat()
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        msg_rows = [dict(r) for r in conn.execute(
+            """
+            SELECT id, user_name, message, user_color, created_at
+            FROM chat_messages
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (int(max_messages),),
+        ).fetchall()]
+        presence_rows = [dict(r) for r in conn.execute(
+            """
+            SELECT session_id, user_name, user_color, ip_address, last_seen
+            FROM chat_presence
+            WHERE last_seen >= ?
+            ORDER BY last_seen DESC
+            LIMIT 300
+            """,
+            (cutoff_iso,),
+        ).fetchall()]
+
+    try:
+        with client.pipeline() as pipe:
+            if msg_rows and not has_messages:
+                pipe.delete(CHAT_MESSAGES_KEY)
+                for row in msg_rows:
+                    item = {
+                        "id": int(row.get("id", 0) or 0),
+                        "user_name": sanitize_chat_name(row.get("user_name", "אורח")),
+                        "message": sanitize_chat_message(row.get("message", "")),
+                        "user_color": sanitize_chat_color(row.get("user_color", "#4ea1ff")),
+                        "created_at": to_israel_time_iso(row.get("created_at")),
+                    }
+                    pipe.rpush(CHAT_MESSAGES_KEY, json.dumps(item, ensure_ascii=False))
+                pipe.ltrim(CHAT_MESSAGES_KEY, 0, int(max_messages) - 1)
+
+            if presence_rows and not has_presence:
+                pipe.delete(CHAT_PRESENCE_ZSET_KEY)
+                pipe.delete(CHAT_PRESENCE_DATA_KEY)
+                for row in presence_rows:
+                    sid = str(row.get("session_id", "")).strip()[:64]
+                    if not sid:
+                        continue
+                    payload = {
+                        "session_id": sid,
+                        "user_name": sanitize_chat_name(row.get("user_name", "אורח")),
+                        "user_color": sanitize_chat_color(row.get("user_color", "#4ea1ff")),
+                        "ip_address": str(row.get("ip_address", "")).strip()[:64],
+                        "last_seen": row.get("last_seen") or utc_now_iso(),
+                    }
+                    score_dt = parse_dt(str(payload["last_seen"]))
+                    score = score_dt.timestamp() if score_dt else datetime.now(UTC).timestamp()
+                    pipe.zadd(CHAT_PRESENCE_ZSET_KEY, {sid: score})
+                    pipe.hset(CHAT_PRESENCE_DATA_KEY, sid, json.dumps(payload, ensure_ascii=False))
+            pipe.execute()
+    except Exception as exc:
+        logger.warning("Redis chat warmup failed (%s)", exc)
 def utc_now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
@@ -545,6 +762,9 @@ CHAT_BAD_WORDS_EN = {
 CHAT_BAD_WORDS_HE = {
     "בן זונה", "בת זונה", "זונה", "מזדיין", "מזדיינת", "כוס אמק", "כוסעמק", "כוס אמא", "כוסאמא",
     "יא בן זונה", "מטומטם", "מטומטמת", "דביל", "דפוק", "שרמוטה", "מניאק", "כלבה", "נאצי",
+    "זין", "חמור", "בן-זונה", "תמות", "תמותי", "תמותו", "תמות כבר", "לך תמות",
+    "בת-זונה", "אפס", "טמבל", "חתיכת זבל", "זבל", "זונהה", "שרמוט", "כוסאומו",
+    "כוס אוחתוק", "כוסאחותך", "אמא שלך זונה", "יא זונה", "יא חמור",
 }
 
 CHAT_INCITEMENT_TERMS = {
@@ -567,14 +787,16 @@ def has_forbidden_phrase(text: str, terms: set[str]) -> bool:
     value = normalize_chat_text(text)
     if not value:
         return False
+    # Catch variants like "בן זונה" / "בן-זונה" / punctuation noise.
+    compact_value = re.sub(r"[\W_]+", "", value, flags=re.UNICODE)
     for term in terms:
         t = term.strip().lower()
         if not t:
             continue
-        if t in value:
+        compact_term = re.sub(r"[\W_]+", "", t, flags=re.UNICODE)
+        if t in value or (compact_term and compact_term in compact_value):
             return True
     return False
-
 
 def get_chat_moderation_state(session_id: str) -> dict[str, Any]:
     sid = str(session_id or "").strip()[:64]
@@ -683,7 +905,8 @@ def get_client_ip() -> str:
     return remote[:64]
 
 
-def cleanup_chat_presence(active_seconds: int = 90) -> None:
+def cleanup_chat_presence(active_seconds: int = CHAT_ACTIVE_SECONDS) -> None:
+    redis_chat_cleanup_presence(active_seconds=active_seconds)
     cutoff = (datetime.now(UTC) - timedelta(seconds=max(10, int(active_seconds)))).isoformat()
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("DELETE FROM chat_presence WHERE last_seen < ?", (cutoff,))
@@ -697,6 +920,8 @@ def upsert_chat_presence(session_id: str, user_name: str, user_color: str, ip_ad
     color = sanitize_chat_color(user_color)
     ip = str(ip_address or "").strip()[:64]
     now_iso = utc_now_iso()
+
+    redis_chat_upsert_presence(sid, name, color, ip)
 
     with sqlite3.connect(DB_PATH) as conn:
         if create_if_missing:
@@ -722,7 +947,12 @@ def upsert_chat_presence(session_id: str, user_name: str, user_color: str, ip_ad
                 , (name, color, ip, now_iso, sid)
             )
 
-def get_connected_chat_users(active_seconds: int = 90) -> list[dict[str, Any]]:
+
+def get_connected_chat_users(active_seconds: int = CHAT_ACTIVE_SECONDS) -> list[dict[str, Any]]:
+    users_redis = redis_chat_get_connected_users(active_seconds=active_seconds)
+    if isinstance(users_redis, list):
+        return users_redis
+
     cleanup_chat_presence(active_seconds=active_seconds)
     cutoff = (datetime.now(UTC) - timedelta(seconds=max(10, int(active_seconds)))).isoformat()
     with sqlite3.connect(DB_PATH) as conn:
@@ -778,18 +1008,25 @@ def add_chat_message(user_name: str, message: str, user_color: str, session_id: 
         )
 
     upsert_chat_presence(sid, name, color, ip)
-    return {
+    payload = {
         "id": new_id,
         "user_name": name,
         "message": text,
         "user_color": color,
         "created_at": to_israel_time_iso(created_at),
+        "session_id": sid,
     }
+    redis_chat_push_message(payload)
+    return payload
 
 
 def get_chat_messages(limit: int = 100, since_id: int = 0) -> list[dict[str, Any]]:
     limit = max(1, min(int(limit), 100))
     since_id = max(0, int(since_id))
+
+    rows_redis = redis_chat_get_messages(limit=limit, since_id=since_id)
+    if isinstance(rows_redis, list):
+        return rows_redis
 
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
@@ -822,7 +1059,11 @@ def get_chat_messages(limit: int = 100, since_id: int = 0) -> list[dict[str, Any
         d["user_color"] = sanitize_chat_color(d.get("user_color", "#4ea1ff"))
         d["created_at"] = to_israel_time_iso(d.get("created_at"))
         items.append(d)
+
+    if items and get_redis_client() is not None:
+        warm_redis_chat_from_db()
     return items
+
 
 def news_exists(
     link: str,
@@ -1240,6 +1481,15 @@ def run_chat_cleanup(retention_minutes: int = 10, max_messages: int = 10) -> dic
     retention_minutes = max(1, int(retention_minutes))
     max_messages = max(1, int(max_messages))
 
+    redis_chat_cleanup_presence(active_seconds=retention_minutes * 60)
+    client = get_redis_client()
+    if client is not None:
+        try:
+            client.ltrim(CHAT_MESSAGES_KEY, 0, max_messages - 1)
+        except Exception:
+            pass
+
+
     cutoff_iso = (datetime.now(UTC) - timedelta(minutes=retention_minutes)).isoformat()
     deleted_old = 0
     deleted_overflow = 0
@@ -1639,6 +1889,7 @@ def create_app() -> Flask:
 
     STORAGE_DIR.mkdir(parents=True, exist_ok=True)
     init_db()
+    warm_redis_chat_from_db()
 
     if should_run_scheduler():
         config = load_config(CONFIG_PATH)
@@ -1758,11 +2009,11 @@ def create_app() -> Flask:
         client_ip = get_client_ip()
         effective_session_id = session_id or f"ip:{client_ip[:48]}"
         if session_id:
-            upsert_chat_presence(session_id, user_name or "אורח", user_color or "#4ea1ff", client_ip, create_if_missing=False)
+            upsert_chat_presence(session_id, user_name or "אורח", user_color or "#4ea1ff", client_ip, create_if_missing=True)
 
         moderation_state = get_chat_moderation_state(effective_session_id)
         items = get_chat_messages(limit=limit, since_id=since_id)
-        connected_users = get_connected_chat_users(active_seconds=90)
+        connected_users = get_connected_chat_users(active_seconds=CHAT_ACTIVE_SECONDS)
         last_id = items[-1]["id"] if items else since_id
         return jsonify({
             "items": items,
@@ -1786,7 +2037,7 @@ def create_app() -> Flask:
 
         moderation = moderate_chat_message(session_id, message, client_ip)
         if not moderation.get("allow", False):
-            connected_users = get_connected_chat_users(active_seconds=90)
+            connected_users = get_connected_chat_users(active_seconds=CHAT_ACTIVE_SECONDS)
             status_code = 403 if moderation.get("blocked", False) else 400
             return jsonify({
                 "ok": False,
@@ -1808,7 +2059,7 @@ def create_app() -> Flask:
         )
         if not created:
             return jsonify({"ok": False, "error": "empty_message", "message": "לא ניתן לשלוח הודעה ריקה."}), 400
-        connected_users = get_connected_chat_users(active_seconds=90)
+        connected_users = get_connected_chat_users(active_seconds=CHAT_ACTIVE_SECONDS)
         return jsonify({
             "ok": True,
             "item": created,
@@ -1880,6 +2131,25 @@ app = create_app()
 if __name__ == "__main__":
     debug_mode = os.getenv("FLASK_DEBUG", "0").strip().lower() in {"1", "true", "yes", "on"}
     app.run(host="0.0.0.0", port=8080, debug=debug_mode, use_reloader=False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
