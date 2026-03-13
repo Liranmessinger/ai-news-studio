@@ -2364,3 +2364,11 @@ body[data-theme="white"] { --chat-scroll-thumb: #2d7bff; --chat-scroll-track: rg
     flex: 0 0 auto !important;
   }
 }
+
+/* Mobile/tablet: category row starts from right (RTL) so 'הכל' appears first */
+@media (max-width: 1200px) {
+  #categoryRow {
+    direction: rtl !important;
+    justify-content: flex-start !important;
+  }
+}
