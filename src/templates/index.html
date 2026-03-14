@@ -8,10 +8,10 @@
     function gtag() { dataLayer.push(arguments); }
     gtag('js', new Date());
     gtag('config', 'G-THCMHPDVZK');
-  </script>  <meta charset="UTF-8" />
+  </script>
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>24/7 ניוז | חדשות ללא הפסקה, מבזקים וצ׳אט חי</title>
-  {% set seo = namespace(site_title='24/7 ניוז', site_description='24/7 ניוז - חדשות ללא הפסקה, מבזקים בזמן אמת וצ׳אט קהילתי חי.', description='24/7 ניוז - חדשות ללא הפסקה, מבזקים בזמן אמת וצ׳אט קהילתי חי.', image='', headline='24/7 ניוז') %}
+  {% set seo = namespace(site_title='24/7 ניוז | חדשות ללא הפסקה', site_description='24/7 ניוז מביא חדשות בזמן אמת, מבזקים שוטפים, עדכוני ספורט וצ׳אט קהילתי חי מישראל ומהעולם.', description='24/7 ניוז מביא חדשות בזמן אמת, מבזקים שוטפים, עדכוני ספורט וצ׳אט קהילתי חי מישראל ומהעולם.', image='https://storage.googleapis.com/assets_dilush/%D7%91%D7%99%D7%A0%D7%94%20%D7%91%20%D7%A7%D7%9C%D7%99%D7%A7/Assets/hero2.png', headline='24/7 ניוז', canonical='https://news.dilushnow.com/') %}
   {% if items and items|length > 0 %}
     {% set seo.headline = items[0].title %}
     {% if items[0].summary %}{% set seo.description = items[0].summary %}{% endif %}
@@ -19,32 +19,34 @@
       {% if items[0].image_path.startswith('http') %}
         {% set seo.image = items[0].image_path %}
       {% else %}
-        {% set seo.image = request.url_root.rstrip('/') ~ '/files/' ~ items[0].image_path %}
+        {% set seo.image = seo.canonical.rstrip('/') ~ '/files/' ~ items[0].image_path %}
       {% endif %}
     {% endif %}
   {% endif %}
-  <meta name="description" content="{{ seo.site_description }}" />
+  <title>Latest News: {{ seo.headline }} | 24/7 News</title>
+  <meta name="description" content="{{ seo.description }}" />
   <meta name="keywords" content="חדשות, מבזקים, חדשות ישראל, חדשות בעולם, צ׳אט חדשות, 24/7 ניוז" />
-  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+  <meta name="robots" content="index,follow" />
   <meta name="googlebot" content="index,follow,max-image-preview:large" />
   <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}" />
   <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" />
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.ico') }}" />
-  <link rel="canonical" href="{{ request.base_url }}" />
-  <link rel="alternate" hreflang="he-IL" href="{{ request.base_url }}" />
+  <link rel="canonical" href="https://news.dilushnow.com/" />
+  <link rel="alternate" hreflang="he-IL" href="{{ seo.canonical }}" />
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="he_IL" />
-  <meta property="og:site_name" content="{{ seo.site_title }}" />
+  <meta property="og:site_name" content="24/7 ניוז" />
   <meta property="og:title" content="{{ seo.site_title }}" />
-  <meta property="og:description" content="{{ seo.site_description }}" />
-  <meta property="og:url" content="{{ request.base_url }}" />
-  {% if seo.image %}<meta property="og:image" content="{{ seo.image }}" />{% endif %}
+  <meta property="og:description" content="{{ seo.description }}" />
+  <meta property="og:url" content="{{ seo.canonical }}" />
+  <meta property="og:image" content="{{ seo.image }}" />
+  <meta property="og:image:alt" content="24/7 ניוז - חדשות ללא הפסקה" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="{{ seo.site_title }}" />
-  <meta name="twitter:description" content="{{ seo.site_description }}" />
-  {% if seo.image %}<meta name="twitter:image" content="{{ seo.image }}" />{% endif %}
-  <script type="application/ld+json">{{ {"@context":"https://schema.org","@type":"NewsMediaOrganization","name":"24/7 ניוז","url":request.url_root.rstrip("/"),"description":seo.site_description,"inLanguage":"he-IL"}|tojson }}</script>
-  <script type="application/ld+json">{{ {"@context":"https://schema.org","@type":"CollectionPage","name":seo.site_title,"description":seo.site_description,"url":request.base_url,"inLanguage":"he-IL"}|tojson }}</script>
+  <meta name="twitter:description" content="{{ seo.description }}" />
+  <meta name="twitter:image" content="{{ seo.image }}" />
+  <script type="application/ld+json">{{ {"@context":"https://schema.org","@type":"NewsMediaOrganization","name":"24/7 News","url":"https://news.dilushnow.com","description":seo.site_description,"inLanguage":"he-IL"}|tojson }}</script>
+  <script type="application/ld+json">{{ {"@context":"https://schema.org","@type":"WebSite","name":"24/7 ניוז","url":"https://news.dilushnow.com/","description":seo.site_description,"inLanguage":"he-IL"}|tojson }}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;500;800&display=swap" rel="stylesheet">
@@ -1002,6 +1004,12 @@
       heroImage.style.display = "block";
     }
 
+    function updateDocumentTitle() {
+      const latest = Array.isArray(allItems) && allItems.length ? allItems[0] : null;
+      const headline = latest && latest.title ? String(latest.title).trim() : "24/7 News";
+      document.title = `Latest News: ${headline} | 24/7 News`;
+    }
+
     function compactHeadlinesHtml(items) {
       const headlines = (items || []).slice(0, 12).map(item => {
         const t = String(item.title || "").trim();
@@ -1090,6 +1098,7 @@
       }
 
       refreshHeroQuick();
+      updateDocumentTitle();
       renderBreakingStrip();
     }
 
@@ -1203,8 +1212,11 @@
       const row = document.getElementById("categoryRow");
       if (!row) return;
       if (!window.matchMedia("(max-width: 1200px)").matches) return;
-      // Keep the visible start at RTL-right so the first chip ("???") is shown first.
-      row.scrollLeft = row.scrollWidth;
+      const firstChip = row.querySelector(".chip");
+      if (!firstChip) return;
+      window.requestAnimationFrame(() => {
+        firstChip.scrollIntoView({ block: "nearest", inline: "start" });
+      });
     }
 
     window.addEventListener("resize", () => {

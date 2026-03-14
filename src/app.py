@@ -2081,43 +2081,46 @@ def create_app() -> Flask:
         content = (
             "User-agent: *\n"
             "Allow: /\n"
-            "Disallow: /api/\n"
             f"Sitemap: {base}/sitemap.xml\n"
         )
         return Response(content, mimetype="text/plain; charset=utf-8")
 
     @app.route("/sitemap.xml")
     def sitemap() -> Any:
-        base = request.url_root.rstrip("/")
-        taxonomy = get_taxonomy()
-        items = get_news(limit=1, hours=24)
-        lastmod = items[0].get("created_at") if items else utc_now_iso()
-
-        urls = [f"{base}/"]
-        for cat in taxonomy.get("categories", []):
-            value = str(cat.get("value", "")).strip()
-            if not value:
-                continue
-            urls.append(f"{base}/?{urlencode({'category': value})}")
-
-        nodes = []
-        for u in urls:
-            nodes.append(
-                "  <url>\n"
-                f"    <loc>{html.escape(u)}</loc>\n"
-                f"    <lastmod>{html.escape(lastmod)}</lastmod>\n"
-                "    <changefreq>always</changefreq>\n"
-                "    <priority>0.8</priority>\n"
-                "  </url>"
-            )
+        sitemap_path = BASE_DIR / "sitemap.xml"
+        if sitemap_path.exists():
+            return send_from_directory(BASE_DIR, "sitemap.xml", mimetype="application/xml")
 
         xml = (
             '<?xml version="1.0" encoding="UTF-8"?>\n'
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-            + "\n".join(nodes)
-            + "\n</urlset>\n"
+            "  <url>\n"
+            "    <loc>https://news.dilushnow.com/</loc>\n"
+            "    <changefreq>hourly</changefreq>\n"
+            "    <priority>1.0</priority>\n"
+            "  </url>\n"
+            "</urlset>\n"
         )
         return Response(xml, mimetype="application/xml; charset=utf-8")
+
+    @app.route("/rss.xml")
+    def rss_feed() -> Any:
+        rss_path = BASE_DIR / "rss.xml"
+        if rss_path.exists():
+            return send_from_directory(BASE_DIR, "rss.xml", mimetype="application/rss+xml")
+
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            "<rss version=\"2.0\">\n"
+            "  <channel>\n"
+            "    <title>24/7 News</title>\n"
+            "    <link>https://news.dilushnow.com</link>\n"
+            "    <description>Live global news feed</description>\n"
+            "  </channel>\n"
+            "</rss>\n"
+        )
+        return Response(xml, mimetype="application/rss+xml; charset=utf-8")
+
     @app.route("/files/<path:filename>")
     def files(filename: str) -> Any:
         return send_from_directory(STORAGE_DIR, filename)
