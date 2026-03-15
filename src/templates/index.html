@@ -1077,26 +1077,46 @@
     }
 
     function captureScrollAnchor() {
-      if (window.scrollY < 160) return null;
       const cards = Array.from(document.querySelectorAll("#newsFeed .card[data-id]"));
+      const newsFeed = document.getElementById("newsFeed");
+      const baselineTop = newsFeed ? newsFeed.getBoundingClientRect().top : 0;
+
       for (const card of cards) {
         const rect = card.getBoundingClientRect();
-        if (rect.bottom > 120) {
+        if (rect.bottom > Math.max(0, baselineTop)) {
           return {
             id: card.dataset.id || "",
             top: rect.top,
+            scrollHeight: document.documentElement.scrollHeight,
           };
         }
       }
-      return null;
+
+      return {
+        id: "",
+        top: 0,
+        scrollHeight: document.documentElement.scrollHeight,
+      };
     }
 
     function restoreScrollAnchor(anchor) {
-      if (!anchor || !anchor.id) return;
-      const target = document.querySelector(`#newsFeed .card[data-id="${CSS.escape(anchor.id)}"]`);
-      if (!target) return;
-      const nextTop = target.getBoundingClientRect().top;
-      window.scrollBy(0, nextTop - anchor.top);
+      if (!anchor) return;
+
+      if (anchor.id) {
+        const target = document.querySelector(`#newsFeed .card[data-id="${CSS.escape(anchor.id)}"]`);
+        if (target) {
+          const nextTop = target.getBoundingClientRect().top;
+          window.scrollBy(0, nextTop - anchor.top);
+          return;
+        }
+      }
+
+      const previousHeight = Number(anchor.scrollHeight || 0);
+      const nextHeight = document.documentElement.scrollHeight;
+      const delta = nextHeight - previousHeight;
+      if (delta !== 0) {
+        window.scrollBy(0, delta);
+      }
     }
 
     function renderFeed(preserveScroll = false) {
