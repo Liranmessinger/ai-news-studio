@@ -1311,6 +1311,19 @@ footer {
   .compact-panels-inline {
     grid-template-columns: 1fr;
   }
+
+  .mobile-running-rail {
+    max-height: none;
+    overflow-y: auto;
+  }
+
+  .mobile-running-list {
+    animation: none;
+  }
+
+  .mobile-running-list[aria-hidden="true"] {
+    display: none;
+  }
 }
 @media (min-width: 1201px) {
   .hours-theme-row,

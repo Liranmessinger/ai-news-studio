@@ -1260,11 +1260,7 @@
       const row = document.getElementById("categoryRow");
       if (!row) return;
       if (!window.matchMedia("(max-width: 1200px)").matches) return;
-      const firstChip = row.querySelector(".chip");
-      if (!firstChip) return;
-      window.requestAnimationFrame(() => {
-        firstChip.scrollIntoView({ block: "nearest", inline: "start" });
-      });
+      row.scrollTop = 0;
     }
 
     window.addEventListener("resize", () => {
