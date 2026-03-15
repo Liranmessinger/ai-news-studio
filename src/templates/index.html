@@ -927,6 +927,7 @@
       const link = item.link || "";
       const promptPath = item.prompt_path || "";
       const imagePath = item.image_path || "";
+      const itemId = escapeHtml(String(item.id || ""));
 
       let imageBlock = "";
       if (imagePath) {
@@ -938,7 +939,7 @@
       }
 
       return `
-        <article class="card" data-category="${escapeHtml(item.category || "")}" data-style="${escapeHtml(item.style_name || "")}" data-date="${escapeHtml(item.published_at || item.created_at || "")}">
+        <article class="card" data-id="${itemId}" data-category="${escapeHtml(item.category || "")}" data-style="${escapeHtml(item.style_name || "")}" data-date="${escapeHtml(item.published_at || item.created_at || "")}">
           <div class="list-row">
             <div class="list-media">${imageBlock}</div>
             <div class="list-main">
@@ -1075,9 +1076,33 @@
       `;
     }
 
-    function renderFeed() {
+    function captureScrollAnchor() {
+      if (window.scrollY < 160) return null;
+      const cards = Array.from(document.querySelectorAll("#newsFeed .card[data-id]"));
+      for (const card of cards) {
+        const rect = card.getBoundingClientRect();
+        if (rect.bottom > 120) {
+          return {
+            id: card.dataset.id || "",
+            top: rect.top,
+          };
+        }
+      }
+      return null;
+    }
+
+    function restoreScrollAnchor(anchor) {
+      if (!anchor || !anchor.id) return;
+      const target = document.querySelector(`#newsFeed .card[data-id="${CSS.escape(anchor.id)}"]`);
+      if (!target) return;
+      const nextTop = target.getBoundingClientRect().top;
+      window.scrollBy(0, nextTop - anchor.top);
+    }
+
+    function renderFeed(preserveScroll = false) {
       const newsFeed = document.getElementById("newsFeed");
       if (!newsFeed) return;
+      const anchor = preserveScroll ? captureScrollAnchor() : null;
 
       const items = getFilteredItems();
       if (!items.length) {
@@ -1100,6 +1125,9 @@
       refreshHeroQuick();
       updateDocumentTitle();
       renderBreakingStrip();
+      if (anchor) {
+        window.requestAnimationFrame(() => restoreScrollAnchor(anchor));
+      }
     }
 
     function applyFilter() {
@@ -1146,7 +1174,7 @@
         if (sig && sig === lastSignature) return;
         allItems = incoming;
         lastSignature = sig;
-        renderFeed();
+        renderFeed(true);
       } catch (_) {
       } finally {
         newsRefreshInFlight = false;
